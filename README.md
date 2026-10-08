@@ -105,3 +105,8 @@ acceptance 0.8, maximum tree depth 12 and seed 1024. A fold takes from minutes
 - Brazil and São Paulo fits with `I=VL+C` need the private PCR series.
   `I=C` fits do not: the Stan program never reads the viral load when
   `use_vl = 0`, so the zeros passed in its place give identical results.
+
+## Licence
+
+Code: MIT (see `LICENSE`). The data in `data/public/` remain under the terms of
+their sources, listed in `data-raw/README.md`.
