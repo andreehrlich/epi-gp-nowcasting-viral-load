@@ -1,0 +1,17 @@
+# Private PCR viral-load data (Brazil, Sao Paulo): never commit.
+data/private/*
+!data/private/README.md
+
+# Fits, compiled models and R artefacts
+results/
+build/
+stan/*.exe
+stan/gp_hsgp
+stan/gp_dense
+stan/exgp_hsgp
+stan/exgp_dense
+.Rhistory
+.RData
+.Rproj.user/
+*.Rcheck/
+.DS_Store
