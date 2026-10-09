@@ -49,6 +49,26 @@ scripts/      command-line entry points
 results/      fits and scores (created on demand, not tracked)
 ```
 
+## Data sources
+
+The public inputs in `data/public/` are derived from these open datasets. The
+derivations, date ranges and age groups are described in
+[`data-raw/README.md`](data-raw/README.md).
+
+| Dataset | Cases and deaths | Viral load / wastewater |
+| --- | --- | --- |
+| Brazil, São Paulo | e-SUS Notifica ([API](https://opendatasus.saude.gov.br/dataset/notificacoes-de-sindrome-gripal-api-elasticsearch), [2020](https://opendatasus.saude.gov.br/dataset/notificacoes-de-sindrome-gripal-leve-2020), [2021](https://opendatasus.saude.gov.br/dataset/notificacoes-de-sindrome-gripal-leve-2021), [2022](https://opendatasus.saude.gov.br/dataset/notificacoes-de-sindrome-gripal-leve-2022)); deaths from [SIM](https://opendatasus.saude.gov.br/dataset/sim) | RT-PCR Ct values (private, not distributed) |
+| Ottawa | [Open Ottawa](https://open.ottawa.ca/datasets/81a6b8a6d2824ebd8cfddd933ab043c4_0) | [SPHERE](https://sphere.waterpathogens.org/dataset/181308ef-4f17-478e-98ff-29ab7c6b548d) |
+| Toronto | [City of Toronto Open Data](https://open.toronto.ca/dataset/covid-19-cases-in-toronto/) | [PHAC export](https://github.com/emilysomerset/wastewater_paper_code) |
+| Scotland | [Public Health Scotland](https://www.opendata.nhs.scot/dataset/covid-19-in-scotland) | [BioRDM](https://github.com/BioRDM/COVID-Wastewater-Scotland) |
+
+Contact matrices: Prem et al. (2021), via
+[`contactdata`](https://cran.r-project.org/package=contactdata).
+Populations: [UN WPP 2019](https://population.un.org/wpp/),
+[IBGE SIDRA 7358](https://sidra.ibge.gov.br/tabela/7358),
+[Toronto neighbourhood profiles](https://open.toronto.ca/dataset/neighbourhood-profiles/)
+and [NRS](https://www.nrscotland.gov.uk/publications/rebased-population-estimates-scotland-mid-2011-to-mid-2021/).
+
 ## Requirements
 
 - R >= 4.5 with `cmdstanr` (>= 0.9), `posterior`, `loo` and `jsonlite`.
