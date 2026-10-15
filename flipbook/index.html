@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Viral load in age-stratified epidemic models: a flipbook of the paper</title>
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<style>
+  /* Palette: dark surface; series colours validated for colour-vision deficiency (dataviz validator, 15-10-2026).
+     Cases/VL pair: CVD dE 26.8. GP classes: magenta/yellow/violet triple (all-pairs CVD dE 13.2) + ExGP as white emphasis. */
+  :root {
+    --page:#0a0e14; --surface:#0f141c; --surface-2:#161d28; --line:#232a35;
+    --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781; --grid:#232a35; --axis:#383835;
+    --obs:#9aa3ad; --cases:#3987e5; --vl:#d95926;
+    --sgp:#d55181; --sgpai:#c98500; --igp:#9085e9; --exgp:#ffffff;
+    --good:#0ca30c; --critical:#d03b3b; --accent:#3987e5;
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing:border-box }
+  html,body { margin:0; background:var(--page); color:var(--ink); font-family:var(--font); -webkit-text-size-adjust:100% }
+  body { min-height:100dvh; display:flex; justify-content:center }
+  .book { width:100%; max-width:560px; height:100dvh; display:flex; flex-direction:column; background:var(--surface); position:relative; overflow-y:auto; overscroll-behavior:contain }
+  .book > * { flex:none }
+  @media (min-width:600px) { .book { border-left:1px solid var(--line); border-right:1px solid var(--line) } }
+  header.top { display:flex; align-items:center; gap:10px; padding:10px 14px 6px; font-size:.78rem; color:var(--ink-2) }
+  header.top .part { text-transform:uppercase; letter-spacing:.08em; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .draft-pill { font-size:.66rem; letter-spacing:.06em; color:#e7c27a; border:1px solid #5a4a22; border-radius:999px; padding:1px 7px; text-decoration:none }
+  header.top .count { font-variant-numeric:tabular-nums }
+  button { font:inherit; color:inherit; background:none; border:0; cursor:pointer }
+  .iconbtn { width:40px; height:40px; border-radius:10px; display:grid; place-items:center; color:var(--ink-2) }
+  .iconbtn:hover,.iconbtn:focus-visible { background:var(--surface-2); color:var(--ink); outline:none }
+  .progress { display:flex; gap:2px; padding:0 14px }
+  .progress i { flex:1; height:3px; border-radius:2px; background:var(--line) }
+  .progress i.done { background:var(--ink-2) }
+  .progress i.cur { background:var(--ink) }
+  h1.title { font-size:1.28rem; line-height:1.25; margin:10px 16px 2px; font-weight:650 }
+  .kind { margin:0 16px; font-size:.72rem; color:var(--muted); display:flex; gap:8px; flex-wrap:wrap }
+  .kind span { border:1px solid var(--line); border-radius:999px; padding:1px 8px }
+  .kind span.synthetic { color:#e7c27a; border-color:#5a4a22 }
+  .kind span.plugin { color:#9fc3f0; border-color:#22405e }
+  .kind span.deep { color:#c9c2f5; border-color:#3b3566 }
+  /* the stage takes whatever height is left; the canvas keeps 8:9 and shrinks to fit, so text and controls never scroll away */
+  .book > .stage { flex:1 1 auto; min-height:400px; position:relative; margin:8px 10px 0; touch-action:pan-y; display:flex; justify-content:center; align-items:flex-start }
+  .stage canvas { display:block; width:auto; height:auto; max-width:100%; max-height:100%; aspect-ratio:8/9; border-radius:12px; background:var(--surface) }
+  /* phones: keep the drawing at full column width (smallest canvas text ~12 px); the page scrolls a little instead */
+  @media (max-width:600px) { .book > .stage { min-height:calc((100vw - 20px) * 1.125) } }
+  .caption { min-height:4.6em; margin:10px 16px 0; font-size:1.02rem; line-height:1.45; color:var(--ink); transition:opacity .25s }
+  .caption.fade { opacity:0 }
+  .eq { margin:6px 12px 0; padding:8px 6px; border-radius:10px; background:var(--surface-2); overflow-x:auto; overflow-y:hidden; min-height:3.2em; font-size:1.02rem; transition:opacity .25s }
+  .eq:empty { display:none }
+  .eq.fade { opacity:.15 }
+  .eq .katex-display { margin:.2em 0 }
+  .eq.scrolls { -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent); mask-image:linear-gradient(90deg,#000 88%,transparent) }
+  .controls { margin-top:auto; padding:8px 10px calc(10px + var(--safe-b)); display:flex; align-items:center; gap:6px }
+  .scrub { flex:1; height:40px; display:flex; align-items:center; cursor:pointer; touch-action:none }
+  .scrub .track { position:relative; width:100%; height:4px; border-radius:2px; background:var(--line) }
+  .scrub .fill { position:absolute; inset:0 auto 0 0; background:var(--ink-2); border-radius:2px }
+  .scrub .beat { position:absolute; top:-3px; width:2px; height:10px; background:var(--muted) }
+  .drawer-btn { margin:8px 16px 0; align-self:flex-start; font-size:.86rem; color:var(--ink-2); border:1px solid var(--line); border-radius:999px; padding:6px 12px }
+  .drawer-btn:hover { color:var(--ink) }
+  .sheet { position:fixed; inset:0; display:none; z-index:20 }
+  .sheet.open { display:flex; justify-content:center; align-items:flex-end }
+  .sheet .scrim { position:absolute; inset:0; background:rgba(0,0,0,.55) }
+  .sheet .panel { position:relative; width:100%; max-width:560px; max-height:82dvh; overflow:auto; background:var(--surface-2); border-radius:16px 16px 0 0; padding:16px 18px calc(22px + var(--safe-b)); font-size:.95rem; line-height:1.55; color:var(--ink-2) }
+  .sheet .panel h2 { margin:0 0 8px; color:var(--ink); font-size:1.05rem }
+  .sheet .panel h3 { margin:14px 0 4px; color:var(--ink); font-size:.92rem }
+  .sheet .panel ul { padding-left:1.1em; margin:.3em 0 }
+  .sheet .panel li { margin:.25em 0 }
+  .sheet .panel code { font-size:.82em; color:var(--ink-2); word-break:break-all }
+  .sheet .panel .flag { border-left:3px solid #e7c27a; padding:4px 10px; margin:8px 0; background:rgba(231,194,122,.06) }
+  .sheet .panel .close { position:sticky; top:0; float:right; margin:-6px -8px 0 0 }
+  .figcard { background:#fff; border-radius:8px; padding:6px; margin:8px 0 }
+  .figcard img { width:100%; height:auto; display:block; cursor:zoom-in }
+  .figcap { font-size:.8rem; color:var(--muted) }
+  .toc a { display:flex; gap:10px; padding:9px 4px; color:var(--ink-2); text-decoration:none; border-bottom:1px solid var(--line) }
+  .toc a.cur { color:var(--ink) }
+  .toc a b { width:2.2em; color:var(--muted); font-weight:500; font-variant-numeric:tabular-nums }
+  .toc .partname { margin:14px 0 2px; color:var(--muted); font-size:.75rem; text-transform:uppercase; letter-spacing:.08em }
+  .zoom { position:fixed; inset:0; z-index:30; background:#fff; overflow:auto; display:none }
+  .zoom.open { display:block }
+  .zoom img { width:200%; max-width:none }
+  .zoom button { position:fixed; top:10px; right:10px; background:#000; color:#fff; border-radius:999px; padding:6px 12px }
+  .embed header.top .home { display:none }
+  /* Teaching the page-turn gesture: the page follows the finger, new pages slide in from the side they came from,
+     a first-visit hint shows the swipe, and the next button pulses when a scene's animation ends. */
+  .page { transition:transform .3s cubic-bezier(.2,.8,.2,1), opacity .25s }
+  .book.dragging .page { transition:none; transform:translateX(var(--dx, 0px)) }
+  .book.enter-next .page { transition:none; transform:translateX(48px); opacity:0 }
+  .book.enter-prev .page { transition:none; transform:translateX(-48px); opacity:0 }
+  .swipe-hint { position:absolute; left:50%; bottom:16px; transform:translate(-50%, 8px); display:flex; align-items:center; gap:10px;
+    padding:9px 15px; border-radius:999px; background:rgba(10,14,20,.88); border:1px solid var(--line); color:var(--ink);
+    font-size:.92rem; white-space:nowrap; pointer-events:none; opacity:0; transition:opacity .35s, transform .35s }
+  .swipe-hint.show { opacity:1; transform:translate(-50%, 0) }
+  .hint-track { position:relative; width:46px; height:10px; border-radius:5px; background:var(--line) }
+  .hint-track i { position:absolute; top:-3px; right:0; width:16px; height:16px; border-radius:50%; background:var(--ink); animation:hint-swipe 1.6s ease-in-out infinite }
+  @keyframes hint-swipe { 0% { transform:translateX(0); opacity:0 } 15% { opacity:1 } 70% { transform:translateX(-30px); opacity:1 } 100% { transform:translateX(-30px); opacity:0 } }
+  #next.nudge { color:var(--ink); background:var(--surface-2); animation:nudge 1.3s ease-in-out 3 }
+  @keyframes nudge { 0%,100% { box-shadow:0 0 0 0 rgba(57,135,229,0) } 50% { box-shadow:0 0 0 7px rgba(57,135,229,.35) } }
+  .side-details { display:none }
+  /* Desktop / landscape: the portrait animation fills the window height on the left; title, caption, equation and the
+     specialist details sit in a reading column on the right (the drawer becomes inline). Phones are unchanged. */
+  @media (min-width:1000px) and (min-aspect-ratio:5/4) {
+    .book { --stagew: min(calc((100dvh - 150px) * .8889), 58vw); max-width:calc(var(--stagew) + 660px); overflow:hidden;
+      display:grid; grid-template-columns:var(--stagew) minmax(340px, 1fr); column-gap:28px;
+      grid-template-rows:auto auto auto auto auto auto auto 1fr auto;
+      grid-template-areas:"top top" "prog prog" "stage title" "stage kind" "stage caption" "stage eq" "stage drawer" "stage details" "ctl ctl" }
+    header.top { grid-area:top } .progress { grid-area:prog } #title { grid-area:title; font-size:1.6rem; margin:18px 0 6px }
+    #kind { grid-area:kind; margin:0 } .book > .stage { grid-area:stage; min-height:0; margin:14px 0 0 14px; align-self:start }
+    .stage canvas { width:100%; height:auto; max-height:none }
+    #caption { grid-area:caption; margin:16px 0 0; font-size:1.12rem; min-height:5.5em } #eq { grid-area:eq; margin:10px 0 0 }
+    .drawer-btn { display:none } .controls { grid-area:ctl; padding:8px 14px 12px }
+    .side-details { display:block; grid-area:details; min-height:0; overflow-y:auto; margin:14px 0 0; padding:4px 14px 10px 0;
+      border-top:1px solid var(--line); font-size:.92rem; line-height:1.55; color:var(--ink-2) }
+    .side-details h3 { margin:14px 0 4px; color:var(--ink); font-size:.9rem } .side-details ul { padding-left:1.1em; margin:.3em 0 }
+    .side-details .flag { border-left:3px solid #e7c27a; padding:4px 10px; margin:8px 0; background:rgba(231,194,122,.06) }
+    .side-details code { font-size:.82em; word-break:break-all }
+  }
+  @media (prefers-reduced-motion: reduce) { .caption,.eq,.page,.swipe-hint { transition:none } .hint-track i { animation:none; right:30px } #next.nudge { animation:none } }
+</style>
+</head>
+<body>
+<div class="book" id="book">
+  <header class="top">
+    <button class="iconbtn" id="toc-btn" aria-label="Contents">&#9776;</button>
+    <span class="part" id="part"></span>
+<a class="draft-pill" href="../" title="Draft research material. Results are provisional and the paper is not yet peer reviewed.">DRAFT</a>
+    <span class="count" id="count"></span>
+  </header>
+  <div class="progress" id="progress"></div>
+  <h1 class="title page" id="title"></h1>
+  <div class="kind page" id="kind"></div>
+  <div class="stage page" id="stage"><canvas id="cv" width="800" height="900" role="img"></canvas>
+    <div class="swipe-hint" id="swipe-hint" aria-hidden="true"><span class="hint-track"><i></i></span><span id="hint-text"></span></div></div>
+  <div class="caption page" id="caption" aria-live="polite"></div>
+  <div class="eq page" id="eq"></div>
+  <button class="drawer-btn" id="drawer-btn">Details for the specialist &#8250;</button>
+  <div class="side-details" id="side-details"></div>
+  <div class="controls">
+    <button class="iconbtn" id="prev" aria-label="Previous scene">&#8249;</button>
+    <button class="iconbtn" id="play" aria-label="Pause">&#10074;&#10074;</button>
+    <div class="scrub" id="scrub" aria-label="Scene timeline"><div class="track"><div class="fill" id="fill"></div></div></div>
+    <button class="iconbtn" id="next" aria-label="Next scene">&#8250;</button>
+  </div>
+</div>
+<div class="sheet" id="sheet"><div class="scrim" data-close></div><div class="panel" id="panel"></div></div>
+<div class="zoom" id="zoom"><button data-close>Close</button><img alt=""></div>
+
+<script src="vendor/katex/katex.min.js"></script>
+<script>
+/* Flipbook engine. Scenes register with FB.scene({...}) from scenes/*.js; see README.md for the scene contract. */
+window.FB = (function () {
+  const W = 800, H = 900;               // logical stage (portrait 8:9); every scene draws in these units.
+  // Shown ~370 px wide on a phone (scale ~0.46): keep canvas text >= 26 units (~12 px).
+  const scenes = [];
+  const $ = s => document.querySelector(s);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const C = {};                         // resolved palette, filled at start
+  const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let cv, ctx, dpr = 1, cur = -1, t = 0, playing = true, last = 0, beatIx = -1, eqKey = null;
+
+  // ---------- maths/text helpers ----------
+  const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+  const lerp = (a, b, u) => a + (b - a) * u;
+  const ease = u => { u = clamp(u); return u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2; };
+  const seg = (t, a, b) => clamp((t - a) / (b - a));       // 0..1 progress of t through [a,b]
+  function mulberry(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let r = Math.imul(seed ^ seed >>> 15, 1 | seed); r = r + Math.imul(r ^ r >>> 7, 61 | r) ^ r; return ((r ^ r >>> 14) >>> 0) / 4294967296; }; }
+  function normal(rng) { let u = 0, v = 0; while (u === 0) u = rng(); while (v === 0) v = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  function fmtDate(iso) { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${d}-${m}-${y}`; }  // paper style DD-MM-YYYY
+
+  // The paper's macros (andre.sty), so equations can be written as in main.tex. \R is \mathcal{R} as in the paper.
+  const MACROS = {
+    '\\Crep': 'Y^{\\mathrm{REP}}', '\\Drep': 'Y^{\\mathrm{D}}', '\\Ctrue': 'Y^{*}', '\\Cpcr': 'Y^{\\mathrm{PCR}}',
+    '\\VL': '\\mathrm{VL}', '\\VLsum': 'Y^{\\sum\\mathrm{VL}}', '\\VLmean': 'Y^{\\overline{\\mathrm{VL}}}',
+    '\\CFR': '\\mathrm{CFR}', '\\IFR': '\\mathrm{IFR}', '\\PCR': '\\mathrm{PCR}', '\\Npop': 'N_{\\mathrm{pop}}',
+    '\\Reff': '\\mathcal{R}^{\\mathrm{eff}}', '\\R': '\\mathcal{R}', '\\Rzero': '\\mathcal{R}_0',
+    '\\eigmax': '\\operatorname{eigen}_{\\max}', '\\N': '\\mathcal{N}', '\\GP': '\\mathcal{GP}', '\\NB': '\\mathrm{NB}',
+    '\\LN': '\\mathrm{LogNormal}', '\\HN': '\\mathcal{HN}', '\\logit': '\\mathrm{logit}', '\\E': '\\operatorname{\\mathbb{E}}',
+    '\\Var': '\\operatorname{Var}', '\\iid': '\\overset{\\mathrm{iid}}{\\sim}',
+  };
+  // Render \( \) and \[ \] inside an HTML string with KaTeX.
+  function tex(m, display) { return katex.renderToString(m, { displayMode: display, throwOnError: false, macros: { ...MACROS } }); }
+  function math(html) {
+    if (!window.katex) return html;
+    return String(html)
+      .replace(/\\\[([\s\S]+?)\\\]/g, (_, m) => tex(m, true))
+      .replace(/\\\(([\s\S]+?)\\\)/g, (_, m) => tex(m, false));
+  }
+
+  // ---------- canvas drawing kit (logical units) ----------
+  let GA = 1;                           // group alpha: D.group(a, fn) fades everything drawn inside fn
+  const D = {
+    group(alpha, fn) { const prev = GA; GA = prev * clamp(alpha); try { fn(); } finally { GA = prev; } },
+    text(s, x, y, o = {}) {
+      ctx.save();
+      ctx.font = `${o.weight || 400} ${o.size || 30}px ${o.family || 'system-ui, -apple-system, "Segoe UI", sans-serif'}`;
+      ctx.fillStyle = o.color || C.ink; ctx.globalAlpha = GA * (o.alpha ?? 1);
+      ctx.textAlign = o.align || 'left'; ctx.textBaseline = o.base || 'alphabetic';
+      if (o.maxW) { const words = String(s).split(' '); let line = '', yy = y; const lh = o.lh || (o.size || 30) * 1.25;
+        for (const w of words) { const tt = line ? line + ' ' + w : w; if (ctx.measureText(tt).width > o.maxW && line) { ctx.fillText(line, x, yy); line = w; yy += lh; } else line = tt; }
+        ctx.fillText(line, x, yy); ctx.restore(); return yy; }
+      ctx.fillText(s, x, y); ctx.restore(); return y;
+    },
+    line(pts, o = {}) {
+      if (pts.length < 2) return; ctx.save(); ctx.strokeStyle = o.color || C.ink; ctx.lineWidth = o.width || 3;
+      ctx.globalAlpha = GA * (o.alpha ?? 1); ctx.lineJoin = ctx.lineCap = 'round'; if (o.dash) ctx.setLineDash(o.dash);
+      ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke(); ctx.restore();
+    },
+    band(lo, hi, o = {}) {
+      if (lo.length < 2) return; ctx.save(); ctx.fillStyle = o.color || C.ink; ctx.globalAlpha = GA * (o.alpha ?? .18); ctx.beginPath();
+      lo.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); for (let i = hi.length - 1; i >= 0; i--) ctx.lineTo(hi[i][0], hi[i][1]);
+      ctx.closePath(); ctx.fill(); ctx.restore();
+    },
+    dot(x, y, r, o = {}) { ctx.save(); ctx.fillStyle = o.color || C.ink; ctx.globalAlpha = GA * (o.alpha ?? 1); ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+      if (o.ring) { ctx.lineWidth = 2; ctx.strokeStyle = C.surface; ctx.stroke(); } ctx.restore(); },
+    circle(x, y, r, o = {}) { ctx.save(); ctx.strokeStyle = o.color || C.ink; ctx.lineWidth = o.width || 2; ctx.globalAlpha = GA * (o.alpha ?? 1); ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke(); ctx.restore(); },
+    rect(x, y, w, h, o = {}) { ctx.save(); ctx.fillStyle = o.color || C.ink; ctx.globalAlpha = GA * (o.alpha ?? 1); const r = o.r ?? 4;
+      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); ctx.fill();
+      // the outline has its own alpha (o.salpha), so an unfilled outlined box (alpha: 0) still shows
+      if (o.stroke) { ctx.globalAlpha = GA * (o.salpha ?? 1); ctx.strokeStyle = o.stroke; ctx.lineWidth = o.sw || 2; ctx.stroke(); } ctx.restore(); },
+    arrow(x1, y1, x2, y2, o = {}) { const a = Math.atan2(y2 - y1, x2 - x1), h = o.head || 12; D.line([[x1, y1], [x2, y2]], o);
+      ctx.save(); ctx.fillStyle = o.color || C.ink; ctx.globalAlpha = GA * (o.alpha ?? 1); ctx.beginPath(); ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - h * Math.cos(a - .45), y2 - h * Math.sin(a - .45)); ctx.lineTo(x2 - h * Math.cos(a + .45), y2 - h * Math.sin(a + .45)); ctx.fill(); ctx.restore(); },
+    // Plot frame: returns scale functions. box = {x,y,w,h}; xs/ys = [min,max]. Hairline grid, muted ticks.
+    frame(box, xs, ys, o = {}) {
+      const X = v => box.x + (v - xs[0]) / (xs[1] - xs[0]) * box.w;
+      const Y = v => box.y + box.h - (v - ys[0]) / (ys[1] - ys[0]) * box.h;
+      ctx.save(); ctx.globalAlpha = GA * (o.alpha ?? 1);
+      for (const v of o.yticks || []) { D.line([[box.x, Y(v)], [box.x + box.w, Y(v)]], { color: C.grid, width: 1 });
+        D.text(o.yfmt ? o.yfmt(v) : String(v), box.x - 8, Y(v) + 7, { size: o.tick || 26, color: C.muted, align: 'right' }); }
+      D.line([[box.x, box.y + box.h], [box.x + box.w, box.y + box.h]], { color: C.axis, width: 1.5 });
+      for (const [v, lab] of o.xticks || []) D.text(lab, X(v), box.y + box.h + 32, { size: o.tick || 26, color: C.muted, align: 'center' });
+      if (o.ylab) D.text(o.ylab, box.x, box.y - 16, { size: 26, color: C.ink2 });
+      if (o.xlab) D.text(o.xlab, box.x + box.w, box.y + box.h + 66, { size: 26, color: C.ink2, align: 'right' });
+      ctx.restore(); return { X, Y, box };
+    },
+    // Progressive reveal of a series: show the first u fraction of points.
+    partial(pts, u) { const n = Math.max(2, Math.round(clamp(u) * pts.length)); return pts.slice(0, n); },
+    label(s, x, y, color, o = {}) { D.text(s, x, y, { size: o.size || 28, color: C.ink, weight: 600, align: o.align || 'left' }); D.dot(o.align === 'right' ? x + 14 : x - 14, y - 9, 7, { color }); },
+    badge(s, x, y, ok) { const col = ok ? C.good : C.critical; D.rect(x, y - 27, 32 + s.length * 13.5, 38, { color: col, alpha: .16, r: 19 });
+      D.text((ok ? '✓ ' : '✕ ') + s, x + 12, y, { size: 24, color: col, weight: 600 }); },
+  };
+
+  // ---------- engine ----------
+  function scene(def) { scenes.push(def); }
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  const S = () => scenes[cur];
+  const val = (v, ...a) => typeof v === 'function' ? v(...a) : v;
+
+  function renderChrome() {
+    const s = S();
+    $('#part').textContent = s.part || '';
+    $('#count').textContent = `${cur + 1} / ${scenes.length}`;
+    $('#title').textContent = s.title;
+    $('#kind').innerHTML = (s.tags || []).map(k => `<span class="${k.cls || ''}">${k.text}</span>`).join('');
+    $('#progress').innerHTML = scenes.map((_, i) => `<i class="${i < cur ? 'done' : i === cur ? 'cur' : ''}"></i>`).join('');
+    $('#scrub .track').querySelectorAll('.beat').forEach(e => e.remove());
+    for (const b of s.beats) { const m = document.createElement('div'); m.className = 'beat'; m.style.left = (100 * b.at / s.dur) + '%'; $('#scrub .track').appendChild(m); }
+    $('#drawer-btn').hidden = !s.drawer;
+    const sd = $('#side-details'); sd.innerHTML = s.drawer ? drawerHtml(s, true) : ''; sd.scrollTop = 0;
+    sd.querySelectorAll('img[data-zoom]').forEach(img => img.addEventListener('click', () => { $('#zoom img').src = img.src; $('#zoom').classList.add('open'); }));
+    endWait = 0; holdAuto = false;
+    cv.setAttribute('aria-label', s.alt || s.title);
+    beatIx = -1; eqKey = null;
+  }
+  function setBeat(force) {
+    const s = S(); let ix = 0; s.beats.forEach((b, i) => { if (t >= b.at) ix = i; });
+    if (ix === beatIx && !force) return; beatIx = ix;
+    const b = s.beats[ix], capEl = $('#caption'), eqEl = $('#eq');
+    capEl.classList.add('fade'); setTimeout(() => { capEl.innerHTML = math(val(b.cap)); capEl.classList.remove('fade'); }, REDUCED ? 0 : 180);
+    const eq = b.eq !== undefined ? b.eq : s.eq;                  // beat may override the scene equation
+    const key = String(val(eq) || '');
+    if (key !== eqKey) { eqKey = key; eqEl.classList.add('fade');
+      setTimeout(() => { eqEl.innerHTML = key ? math(key.startsWith('\\[') ? key : `\\[${key}\\]`) : ''; fitEq(eqEl); eqEl.classList.remove('fade'); }, REDUCED ? 0 : 180); }
+  }
+  // Shrink an over-wide display equation to fit the phone column (down to 70%); beyond that it scrolls, with an edge cue.
+  function fitEq(el) {
+    el.style.fontSize = ''; el.classList.remove('scrolls');
+    const k = el.querySelector('.katex-display'); if (!k) return;
+    const need = k.scrollWidth, have = el.clientWidth - 12;
+    if (need > have) { const f = Math.max(.7, have / need); el.style.fontSize = (1.02 * f).toFixed(3) + 'rem'; }
+    if (k.scrollWidth > el.clientWidth - 4) el.classList.add('scrolls');
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = C.surface; ctx.fillRect(0, 0, W, H);
+    try { S().draw(t, ctx, D); } catch (e) { console.error(e); D.text('Scene error: ' + e.message, 30, 60, { color: C.critical, size: 22 }); }
+  }
+  const byId = id => scenes.findIndex(s => s.id && s.id.toLowerCase() === String(id).toLowerCase());
+  // ---------- teaching the page turn ----------
+  const TOUCH = matchMedia('(pointer: coarse)').matches;
+  const AUTO_NEXT_S = 3;                 // seconds to hold the final frame before turning the page
+  let endWait = 0, holdAuto = false;     // holdAuto: the reader interacted with this scene, so stay
+  const turns = () => { try { return +(localStorage.getItem('flipbook.turns') || 0); } catch (e) { return 99; } };
+  const needsHint = () => turns() < 2;                   // stop teaching once the reader has turned pages twice
+  let hintTimer = null;
+  function showHint(text, ms) { const h = $('#swipe-hint'); $('#hint-text').textContent = text; h.querySelector('.hint-track').hidden = !TOUCH;
+    h.classList.add('show'); clearTimeout(hintTimer); hintTimer = setTimeout(hideHint, ms); }
+  function hideHint() { $('#swipe-hint').classList.remove('show'); }
+  function sceneEnded() { if (cur >= scenes.length - 1) return; const n = $('#next'); n.classList.remove('nudge'); void n.offsetWidth; n.classList.add('nudge');
+    setTimeout(() => n.classList.remove('nudge'), 4200); if (needsHint()) showHint(TOUCH ? 'Swipe for the next scene' : 'Press → for the next scene', 4000); }
+  // A deliberate page turn (swipe, buttons, keys): animate the new page in from the side it comes from.
+  function turn(dir, auto) { const i = cur + dir; if (i < 0 || i >= scenes.length) return; hideHint(); $('#next').classList.remove('nudge');
+    if (!auto) try { localStorage.setItem('flipbook.turns', turns() + 1); } catch (e) {}
+    go(i); if (REDUCED) return; const b = $('#book'), c = dir > 0 ? 'enter-next' : 'enter-prev';
+    b.classList.add(c); void b.offsetWidth; b.classList.remove(c); }
+  function go(i, keepTime) {
+    if (typeof i === 'string') { const k = byId(i); if (k < 0) return; i = k; }
+    i = clamp(i, 0, scenes.length - 1) | 0; if (i === cur && keepTime) return;
+    cur = i; t = REDUCED ? S().dur : 0; S().setup && S().setup();
+    renderChrome(); setBeat(true); draw();
+    history.replaceState(null, '', '#' + (S().id ? S().id.toLowerCase() : 's' + String(cur + 1).padStart(2, '0')));
+    try { localStorage.setItem('flipbook.scene', cur); } catch (e) {}
+    post({ type: 'flipbook-scene', index: cur });
+  }
+  function seek(u) { t = clamp(u) * S().dur; setBeat(); draw(); }
+  function setPlaying(p) { playing = p; $('#play').innerHTML = p ? '&#10074;&#10074;' : '&#9654;'; $('#play').setAttribute('aria-label', p ? 'Pause' : 'Play'); last = 0; }
+  function frame(now) {
+    if (playing && cur >= 0) {
+      const dt = last ? Math.min(.1, (now - last) / 1000) : 0; last = now;
+      const s = S();
+      if (t < s.dur) { t = Math.min(s.dur, t + dt); setBeat(); draw(); if (t >= s.dur) sceneEnded(); }
+      else if (!s.loop && !holdAuto && cur < scenes.length - 1 && !$('#sheet').classList.contains('open')) {
+        endWait += dt; if (endWait >= AUTO_NEXT_S) { endWait = 0; turn(1, true); } }   // auto-advance after a pause at the end
+      else if (s.loop) { t = s.loopFrom ?? 0; }
+      else if (s.idle) { s._idle = (s._idle || 0) + dt; draw(); }   // optional ambient motion after the timeline ends
+      $('#fill').style.width = (100 * t / s.dur) + '%';
+    } else last = 0;
+    requestAnimationFrame(frame);
+  }
+  function post(msg) { if (window.parent !== window) window.parent.postMessage(msg, location.origin === 'null' ? '*' : location.origin); }
+
+  // ---------- sheets ----------
+  function openSheet(html) { $('#panel').innerHTML = '<button class="iconbtn close" data-close aria-label="Close">&#10005;</button>' + html; $('#sheet').classList.add('open');
+    $('#panel').querySelectorAll('img[data-zoom]').forEach(img => img.addEventListener('click', () => { $('#zoom img').src = img.src; $('#zoom').classList.add('open'); })); }
+  function closeSheet() { $('#sheet').classList.remove('open'); }
+  function drawerHtml(s, inline) {
+    let h = (inline ? '<h3>Details for the specialist</h3>' : `<h2>${s.title}</h2>`) + math(val(s.drawer));
+    if (s.figure) h += `<h3>From the paper</h3><div class="figcard"><img data-zoom loading="lazy" src="${s.figure.src}" alt="${s.figure.alt || ''}"></div><div class="figcap">${math(s.figure.caption || '')} Tap to zoom.</div>`;
+    if (s.flags && s.flags.length) h += '<h3>Notes on fidelity</h3>' + s.flags.map(f => `<div class="flag">${math(f)}</div>`).join('');
+    if (s.source) h += `<h3>Source</h3><div><code>${s.source}</code></div>`;
+    return h;
+  }
+  function tocHtml() {
+    let h = '<h2>Contents</h2><div class="toc">', part = null;
+    scenes.forEach((s, i) => { if (s.part !== part) { part = s.part; h += `<div class="partname">${part}</div>`; }
+      h += `<a href="#${(s.id || 's' + String(i + 1).padStart(2, '0')).toLowerCase()}" data-go="${i}" class="${i === cur ? 'cur' : ''}"><b>${i + 1}</b><span>${s.title}</span></a>`; });
+    return h + '</div>';
+  }
+
+  function start() {
+    for (const k of ['surface', 'surface-2', 'ink', 'ink-2', 'muted', 'grid', 'axis', 'obs', 'cases', 'vl', 'sgp', 'sgpai', 'igp', 'exgp', 'good', 'critical', 'accent', 'line'])
+      C[k.replace('-2', '2')] = css('--' + k);
+    cv = $('#cv'); ctx = cv.getContext('2d'); resize(); addEventListener('resize', () => { resize(); fitEq($('#eq')); draw(); });
+    if (new URLSearchParams(location.search).get('embed') === '1') document.body.classList.add('embed');
+    // Deep-dive scenes declare after: 'S12' and sit behind their parent (several after one parent keep declaration order).
+    const deep = scenes.filter(s => s.after), main = scenes.filter(s => !s.after);
+    scenes.length = 0; scenes.push(...main);
+    for (const d of deep) { let k = scenes.findIndex(s => s.id === d.after); if (k < 0) { console.warn(`after: ${d.after} not found for ${d.id}`); scenes.push(d); continue; }
+      while (k + 1 < scenes.length && scenes[k + 1].after === d.after) k++; scenes.splice(k + 1, 0, d); }
+    scenes.forEach((s, i) => { s.index = i; if (s.dur > 15) console.warn(`scene ${s.id || i + 1} exceeds 15 s`); });
+    $('#prev').onclick = () => turn(-1); $('#next').onclick = () => turn(1);
+    $('#play').onclick = () => { if (t >= S().dur) { t = 0; setBeat(true); } setPlaying(!playing); };
+    $('#drawer-btn').onclick = () => openSheet(drawerHtml(S()));
+    $('#toc-btn').onclick = () => openSheet(tocHtml());
+    $('#sheet').addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (g) { e.preventDefault(); closeSheet(); go(+g.dataset.go); } else if (e.target.closest('[data-close]')) closeSheet(); });
+    $('#zoom').addEventListener('click', e => { if (e.target.closest('[data-close]')) $('#zoom').classList.remove('open'); });
+    addEventListener('keydown', e => { if ($('#sheet').classList.contains('open')) { if (e.key === 'Escape') closeSheet(); return; }
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') turn(1); else if (e.key === 'ArrowLeft' || e.key === 'PageUp') turn(-1);
+      else if (e.key === ' ') { e.preventDefault(); $('#play').click(); } });
+    // scrubber
+    const sc = $('#scrub'); let drag = false;
+    const at = e => { const r = sc.getBoundingClientRect(); seek((e.clientX - r.left) / r.width); };
+    sc.addEventListener('pointerdown', e => { drag = true; holdAuto = true; sc.setPointerCapture(e.pointerId); setPlaying(false); at(e); });
+    sc.addEventListener('pointermove', e => drag && at(e)); sc.addEventListener('pointerup', () => drag = false);
+    // horizontal swipe on the stage/caption area flips pages; vertical movement scrolls
+    let sx = null, sy = null;
+    // the page follows a horizontal drag (with resistance past the first/last scene) and springs back if it is too short
+    const book = $('#book'); let horiz = false;
+    book.addEventListener('touchstart', e => { if (e.target.closest('.scrub,.eq,.sheet')) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; horiz = false; }, { passive: true });
+    book.addEventListener('touchmove', e => { if (sx === null || REDUCED) return; const dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - sy;
+      if (!horiz && Math.abs(dx) > 10 && Math.abs(dx) > 1.2 * Math.abs(dy)) { horiz = true; book.classList.add('dragging'); hideHint(); }
+      if (horiz) { const edge = (cur === 0 && dx > 0) || (cur === scenes.length - 1 && dx < 0); book.style.setProperty('--dx', (dx * (edge ? .15 : .55)).toFixed(1) + 'px'); } }, { passive: true });
+    const endDrag = e => { if (sx === null) return; const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
+      book.classList.remove('dragging'); book.style.removeProperty('--dx');
+      if (Math.abs(dx) > 60 && Math.abs(dx) > 1.5 * Math.abs(dy)) turn(dx < 0 ? 1 : -1); };
+    book.addEventListener('touchend', endDrag, { passive: true }); book.addEventListener('touchcancel', endDrag, { passive: true });
+    // tap on the stage toggles play
+    // tap on the stage: a scene may consume it with onTap(x, y, t) returning true (logical units); otherwise toggle play
+    cv.addEventListener('click', e => { const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * W / r.width, y = (e.clientY - r.top) * H / r.height;
+      if (S().onTap && S().onTap(x, y, t) === true) { holdAuto = true; draw(); return; } $('#play').click(); });
+    document.addEventListener('visibilitychange', () => setPlaying(!document.hidden && playing));
+    addEventListener('message', e => { if (e.origin !== location.origin || !e.data || e.data.type !== 'flipbook-visibility') return; setPlaying(!!e.data.visible); });
+    if (window.ResizeObserver && window.parent !== window) new ResizeObserver(() => post({ type: 'flipbook-height', height: document.documentElement.scrollHeight })).observe(document.body);
+    let first = 0; const m = location.hash.match(/^#s(\d+)([a-z]?)/i);
+    if (m) { const k = byId('S' + m[1].padStart(2, '0') + m[2].toLowerCase()); first = k >= 0 ? k : +m[1] - 1; } else { try { first = +(localStorage.getItem('flipbook.scene') || 0); } catch (e) {} }
+    go(first); requestAnimationFrame(frame);
+    setTimeout(() => { if (needsHint() && !$('#swipe-hint').classList.contains('show')) showHint(TOUCH ? 'Swipe to turn the page' : 'Use the ← → keys to turn the page', 5500); }, 1200);
+  }
+  return { scene, start, go, seek, D, C, W, H, util: { clamp, lerp, ease, seg, mulberry, normal, fmtDate, math, tex }, get scenes() { return scenes; }, get cur() { return cur; }, pause: () => setPlaying(false) };
+})();
+</script>
+<script src="data/part_a.js"></script>
+<script src="data/part_b.js"></script>
+<script src="data/part_c.js"></script>
+<script src="scenes/part_a.js"></script>
+<script src="scenes/part_b.js"></script>
+<script src="scenes/part_c.js"></script>
+<script src="data/deep_metrics.js"></script>
+<script src="data/deep_ngm.js"></script>
+<script src="data/deep_hsgp.js"></script>
+<script src="scenes/deep_metrics.js"></script>
+<script src="scenes/deep_ngm.js"></script>
+<script src="scenes/deep_hsgp.js"></script>
+<script>FB.start();</script>
+</body>
+</html>

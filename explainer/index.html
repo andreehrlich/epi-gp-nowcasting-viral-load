@@ -1,0 +1,1071 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Branching Epidemics &amp; Viral Load</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400;1,600&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single 16:9 "film" stage with subtitles beneath, transport + chapter rail, case-study picker, then per-scene controls. Deliberately one dark look (planetarium / blackboard). */
+:root{
+  --bg:#0c111d; --panel:#131a29; --line:#242d42; --ink:#e9ecf3; --muted:#8e97ad;
+  --sus:#5fb7e4; --inf:#f3b545; --vl:#ef6c8c; --ext:#63cfb1; --rec:#767a99;
+  --f-math:"STIX Two Text","STIX Two Math","Cambria Math",Georgia,serif;
+  --f-sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-sans);font-size:15px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 24px}
+header h1{font-family:var(--f-math);font-style:italic;font-weight:400;font-size:clamp(22px,3vw,30px);margin:0;letter-spacing:.005em;text-wrap:balance}
+header p{margin:0;color:var(--muted);font-size:13.5px}
+.stage{position:relative;width:100%;aspect-ratio:16/9;max-width:100%;container-type:inline-size;background:var(--bg);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.ov{position:absolute;font-family:var(--f-math);color:var(--ink);font-size:2.05cqw;line-height:1.35;transition:opacity .6s ease;pointer-events:none}
+.ov.hide{opacity:0}
+.ov .lbl{font-family:var(--f-sans);font-size:.62em;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.35em}
+.ov h2{font-family:var(--f-math);font-style:italic;font-weight:400;font-size:2.4em;line-height:1.05;margin:0 0 .3em;text-wrap:balance}
+.ov .sub{font-family:var(--f-sans);font-size:.78em;color:var(--muted);max-width:26em}
+.ov .row{display:block;margin:.15em 0}
+.ov .box{display:inline-block;background:rgba(12,17,29,.86);border:1px solid var(--line);border-radius:4px;padding:.4em .8em}
+.c-s{color:var(--sus)} .c-i{color:var(--inf)} .c-v{color:var(--vl)} .c-e{color:var(--ext)} .c-m{color:var(--muted)}
+sub,sup{font-size:.68em;line-height:0}
+.fr{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 .12em}
+.fr>span:first-child{border-bottom:1px solid currentColor;padding:0 .15em}
+.fr>span{line-height:1.15}
+.sum{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:.95;margin:0 .1em}
+.sum b{font-weight:400;font-size:1.45em}
+.sum small{font-size:.55em}
+.cap{min-height:4.6em;display:flex;flex-direction:column;gap:2px}
+.cap .chap{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--inf)}
+.cap p{margin:0;font-size:16.5px;line-height:1.55;max-width:72ch}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+button{font:500 13.5px var(--f-sans);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:7px 13px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--sus);outline-offset:2px}
+button.primary{background:var(--inf);border-color:var(--inf);color:#1a1405;min-width:78px}
+.scrub{flex:1 1 220px;min-width:0;display:flex;align-items:center;gap:10px}
+.scrub input{flex:1;min-width:0;accent-color:var(--inf)}
+.time{font:12.5px var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.chapters{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:6px}
+.chapters button{text-align:left;padding:8px 9px;display:flex;flex-direction:column;gap:1px;min-width:0}
+.chapters button span{font:11px var(--f-mono);color:var(--muted)}
+.chapters button em{font-style:normal;font-size:13px;line-height:1.25}
+.chapters button.real em::after{content:" ●";color:var(--vl);font-size:9px;vertical-align:2px}
+.chapters button[aria-current="true"]{border-color:var(--inf);background:#1c2232}
+.chapters button[aria-current="true"] span{color:var(--inf)}
+.picker{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.picker .lab{color:var(--muted);font-size:13px}
+.picker .note{color:var(--muted);font-size:12.5px}
+.params{display:flex;flex-wrap:wrap;gap:10px 26px;align-items:center;min-height:38px;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.params:empty::before{content:"No controls in this scene. Use the scene rail to jump between scenes.";color:var(--muted);font-size:13px}
+.ctl{display:flex;align-items:center;gap:10px;font-size:13.5px}
+.ctl label{color:var(--muted);font-family:var(--f-math);font-size:17px}
+.ctl input[type=range]{width:150px;accent-color:var(--sus)}
+.ctl output{font:13px var(--f-mono);min-width:3.2em;font-variant-numeric:tabular-nums}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:transparent;padding:6px 11px}
+.seg button[aria-pressed="true"]{background:var(--sus);color:#06121b}
+footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:4px}
+footer cite{font-style:italic;color:var(--ink)}
+footer code{font:12px var(--f-mono);color:var(--ink);word-break:break-all}
+.keys{font:12px var(--f-mono);color:var(--muted)}
+.recap{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2em}
+.recap .rt{font-size:1.15em;font-style:italic;margin-bottom:.25em}
+.recap .rb{font-family:var(--f-sans);font-size:.66em;color:var(--muted);line-height:1.45}
+.stage.portrait{aspect-ratio:4/7}
+.stage.portrait .ov{font-size:3.7cqw}
+.stage.portrait .recap{grid-template-columns:repeat(2,minmax(0,1fr));gap:1em 1.6em}
+.stage.portrait .recap .rb{display:none}
+.stage.portrait .ov h2{font-size:2.1em}
+html.embed header{display:none}
+html.embed body{padding-block:10px 24px}
+@media (max-width:640px){
+  .cap{min-height:8.5em}
+  .cap p{font-size:15px}
+  .chapters{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .chapters button{padding:7px 8px}
+  .chapters button em{font-size:12.5px}
+  .bar{gap:8px}
+  .scrub{flex-basis:100%}
+  .picker .note{flex-basis:100%}
+  .ctl input[type=range]{width:120px}
+  footer{font-size:12px}
+}
+@media (prefers-reduced-motion:reduce){.ov{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Branching epidemics, mass action and viral load</h1>
+    <p class="draft-note" style="margin:.4em 0 0;font-size:.8rem;color:#e7c27a">Draft research material · Results are provisional and the paper is not yet peer reviewed. <a href="../" style="color:inherit">About</a></p>
+    <p>An animated derivation in nine scenes · after Andersson &amp; Britton (2000) · with our fitted models</p>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" aria-label="Animated epidemic model illustration"></canvas>
+    <div class="ov" id="ovA"></div>
+    <div class="ov" id="ovB"></div>
+  </div>
+
+  <div class="cap" aria-live="polite"><span class="chap" id="chap"></span><p id="cap"></p></div>
+
+  <div class="bar">
+    <button class="primary" id="play">Pause</button>
+    <button id="restart">Restart scene</button>
+    <div class="scrub"><input type="range" id="scrub" min="0" max="1000" value="0" aria-label="Scene timeline"><span class="time" id="time">0.0 s</span></div>
+  </div>
+
+  <nav class="chapters" id="chapters" aria-label="Scenes"></nav>
+
+  <div class="picker" id="picker"><span class="lab">Case study</span><div class="seg" role="group" id="dsSeg" aria-label="Case study"></div><span class="note" id="dsNote"></span></div>
+
+  <div class="params" id="params"></div>
+
+  <footer>
+    <span><cite>Stochastic Epidemic Models and Their Statistical Analysis</cite>, H. Andersson &amp; T. Britton, Lecture Notes in Statistics 151, Springer (2000). Part I covers the Reed–Frost chain binomial, the branching approximation of the early epidemic and the threshold theorem; Chapter 6 covers multitype epidemics.</span>
+    <span>Model: the age-stratified ExGP prequential core (<code>code/stan/age_strat/approx2_model33_hsgp_centered_preq2/negbin/prequential_core.stan</code>; São Paulo uses the <code>_preq2as</code> variant), with active sets I=C and I=VL+C and age-specific viral-load coefficients for Brazil and São Paulo. Notation follows <code>docs/notes/foi_active_set_reproduction</code>.</span>
+    <span id="provenance">Scenes marked ● use fitted posterior summaries.</span>
+    <span>Hay et al. (2021), Science 373: eabh0635, on cross-sectional viral loads and epidemic growth. Lloyd-Smith et al. (2005), Nature 438: 355–359, on individual variation in infectiousness. Scene 6 uses illustrative synthetic data.</span>
+    <span class="keys">Space: play/pause · ← →: previous/next scene</span>
+  </footer>
+</div>
+
+<script src="explainer_data.js"></script>
+<script>
+(() => {
+try { if (new URLSearchParams(location.search).get('embed')) document.documentElement.classList.add('embed'); } catch (e) {}
+let W = 1600, H = 900, PORTRAIT = false, TS = 1;
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const ovA = document.getElementById('ovA'), ovB = document.getElementById('ovB');
+const K = {};
+const css = getComputedStyle(document.documentElement);
+['bg','panel','line','ink','muted','sus','inf','vl','ext','rec'].forEach(n => K[n] = css.getPropertyValue('--'+n).trim());
+const FT = '"STIX Two Text", Georgia, serif', FS = '"Instrument Sans", system-ui, sans-serif', FM = '"JetBrains Mono", Menlo, monospace';
+
+/* ---------- utilities ---------- */
+const clamp = (x,a=0,b=1) => Math.max(a, Math.min(b, x));
+const seg = (t,a,b) => clamp((t-a)/(b-a));
+const ease = x => x*x*(3-2*x);
+const lerp = (a,b,u) => a+(b-a)*u;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function normal(r){let u=0;while(u===0)u=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*r())}
+function poisson(r,l){if(l<=0)return 0;if(l<30){const L=Math.exp(-l);let k=0,p=1;do{k++;p*=r()}while(p>L);return k-1}return Math.max(0,Math.round(l+Math.sqrt(l)*normal(r)))}
+function gammaS(r,a){if(a<1)return gammaS(r,a+1)*Math.pow(r(),1/a);const d=a-1/3,c=1/Math.sqrt(9*d);for(;;){let x,v;do{x=normal(r);v=1+c*x}while(v<=0);v=v*v*v;const u=r();if(u<1-0.0331*x**4)return d*v;if(Math.log(u)<0.5*x*x+d*(1-v+Math.log(v)))return d*v}}
+function hexA(h,a){const n=parseInt(h.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}
+function txt(s,x,y,o={}){ctx.save();ctx.font=`${o.it?'italic ':''}${o.w||400} ${(o.size||22)*TS}px ${o.f==='mono'?FM:o.f==='sans'?FS:FT}`;ctx.fillStyle=o.c||K.ink;ctx.globalAlpha=(o.a??1);ctx.textAlign=o.al||'left';ctx.textBaseline=o.bl||'alphabetic';if(o.ls&&'letterSpacing'in ctx)ctx.letterSpacing=o.ls;ctx.fillText(s,x,y);ctx.restore()}
+function label(s,x,y,a=1){txt(s.toUpperCase(),x,y,{f:'sans',size:15,w:600,c:K.muted,ls:'2px',a})}
+function dot(x,y,r,c,a=1){ctx.globalAlpha=a;ctx.fillStyle=c;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}
+function glow(x,y,r,c,a=1){const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,hexA(c,.5*a));g.addColorStop(1,hexA(c,0));ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}
+function ln(x1,y1,x2,y2,c,w=1.5,a=1,dash){ctx.save();ctx.strokeStyle=c;ctx.lineWidth=w;ctx.globalAlpha=a;if(dash)ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.restore()}
+function poly(pts,c,w=2,a=1,dash){if(pts.length<2)return;ctx.save();ctx.strokeStyle=c;ctx.lineWidth=w;ctx.globalAlpha=a;ctx.lineJoin='round';if(dash)ctx.setLineDash(dash);ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();ctx.restore()}
+function frame(x,y,w,h,a=1){ctx.save();ctx.globalAlpha=a;ctx.strokeStyle=K.line;ctx.lineWidth=1.5;ctx.strokeRect(x,y,w,h);ctx.restore()}
+const fmt = (x,d=2) => Number.isFinite(x)?x.toFixed(d):'—';
+const SUB = (s) => `<sub>${s}</sub>`;
+const SUM = (top,bot) => `<span class="sum"><small>${top}</small><b>Σ</b><small>${bot}</small></span>`;
+const FR = (a,b) => `<span class="fr"><span>${a}</span><span>${b}</span></span>`;
+const R0h = `<i>R</i>${SUB('0')}`;
+
+/* ---------- shared parameters ---------- */
+const P = { R0: 2.0, het: false, k: 0.4, seed1: 7, seed2: 11, b3: 1.0, kappa: 1.0 };
+function offspring(r){ return P.het ? poisson(r, P.R0*gammaS(r,P.k)/P.k) : poisson(r, P.R0); }
+function offspringMany(r,n){ return P.het ? poisson(r, P.R0*gammaS(r,P.k*n)/P.k) : poisson(r, P.R0*n); }
+function G(s){ return P.het ? Math.pow(1+P.R0*(1-s)/P.k, -P.k) : Math.exp(P.R0*(s-1)); }
+function extinctionQ(){ let q=0; for(let i=0;i<4000;i++) q=G(q); return q; }
+
+/* =========================================================
+   Scene 0 — Cold open
+   ========================================================= */
+const S0 = (() => {
+  let nodes = [];
+  function build(){
+    for(let s=3;;s++){
+      const r = mulberry32(s); const ns=[{g:0,a0:-Math.PI,a1:Math.PI,p:-1}]; let cur=[0], ok=true;
+      for(let g=1; g<=5; g++){ const nx=[];
+        for(const i of cur){ const k=Math.min(4,poisson(r,2.3)); const n=ns[i]; const sp=(n.a1-n.a0)/Math.max(k,1);
+          for(let j=0;j<k;j++){ ns.push({g,a0:n.a0+sp*j,a1:n.a0+sp*(j+1),p:i}); nx.push(ns.length-1);} }
+        if(nx.length>64){ok=false;break} cur=nx; }
+      if(ok && cur.length>=26){ nodes=ns; break; }
+    }
+    nodes.forEach(n=>{ n.a=(n.a0+n.a1)/2; });
+  }
+  build();
+  function draw(t){
+    const cx = PORTRAIT?400:1040, cy = PORTRAIT?820:455, rg = PORTRAIT?66:74;
+    const rot = t*0.012;
+    for(let g=1; g<=5; g++){ ctx.save(); ctx.globalAlpha=0.5*seg(t,1,3); ctx.strokeStyle=K.line; ctx.setLineDash([2,6]); ctx.beginPath(); ctx.arc(cx,cy,rg*g,0,Math.PI*2); ctx.stroke(); ctx.restore(); }
+    const pos = n => [cx+Math.cos(n.a+rot)*rg*n.g, cy+Math.sin(n.a+rot)*rg*n.g];
+    nodes.forEach(n=>{ if(n.p<0) return; const tg=1.6+1.7*n.g; const u=ease(seg(t,tg,tg+1.3)); if(u<=0) return;
+      const [px,py]=pos(nodes[n.p]), [x,y]=pos(n); ln(px,py,lerp(px,x,u),lerp(py,y,u),K.inf,1.4,0.35+0.3*(1-n.g/6)); });
+    nodes.forEach(n=>{ const tg = n.g? 1.6+1.7*n.g+1.1 : 0; const u=seg(t,tg,tg+0.4); if(u<=0) return;
+      const [x,y]=pos(n); const fresh = 1-seg(t,tg+0.4,tg+3);
+      glow(x,y,n.g?18+16*fresh:46+6*Math.sin(t*2),K.inf,u*(0.5+0.5*fresh)); dot(x,y,n.g?4.5:8,K.inf,u); });
+    const z=[0,0,0,0,0,0]; nodes.forEach(n=>z[n.g]++);
+    for(let g=1; g<=5; g++){ const a=seg(t,1.6+1.7*g+1.2,1.6+1.7*g+2); if(a>0) txt(`${z[g]}`, cx+rg*g-4, cy-8, {f:'mono',size:15,c:K.muted,a,al:'right'}); }
+    if(PORTRAIT) txt('generation', cx, cy+rg*5+40, {f:'sans',size:14,c:K.muted,a:seg(t,4,6),al:'center'}); else txt('generation', cx+rg*5+14, cy-8, {f:'sans',size:14,c:K.muted,a:seg(t,4,6)});
+  }
+  return {
+    name:'One infection', dur:14, draw,
+    beats:[
+      {at:0, cap:'Every epidemic begins with a single infected person. What happens next depends on chance: whom they meet, and how infectious they are when they meet them.',
+       eq:{x:4,y:22,w:40,m:{x:6,y:3,w:88},html:`<span class="lbl">Branching · Mass action · Viral load</span><h2>One infection,<br>many futures</h2><span class="sub">Each ring is a generation of infection. The numbers count how many people are infected in it.</span>`}},
+      {at:8, cap:'This film builds the standard stochastic picture from Andersson & Britton one step at a time: branching processes, then mass action, then the age-structured model we fit, and how viral load reshapes its infection pressure in five real case studies.',
+       eq:{x:4,y:22,w:40,m:{x:6,y:3,w:88},html:`<span class="lbl">Branching · Mass action · Viral load</span><h2>One infection,<br>many futures</h2><span class="sub">Each ring is a generation of infection. The numbers count how many people are infected in it.</span>`}}
+    ]
+  };
+})();
+
+/* =========================================================
+   Scene 1 — Galton–Watson branching process
+   ========================================================= */
+const S1 = (() => {
+  let cols=[], Z=[];
+  const MAXD = 40;
+  function build(){
+    const r = mulberry32(P.seed1*977+13);
+    cols=[[{p:-1,k:0}]]; Z=[1];
+    for(let g=1; g<=5; g++){
+      const prev=cols[g-1], col=[]; let total=0;
+      for(let i=0;i<prev.length;i++){ const k=offspring(r); prev[i].k=k; total+=k; for(let j=0;j<k;j++) col.push({p:i,k:0}); }
+      const und = Z[g-1]-prev.length; if(und>0) total+=offspringMany(r,und);
+      Z[g]=Math.min(total,1e7); cols[g]=col.slice(0,MAXD);
+    }
+  }
+  const X = g => PORTRAIT ? 75+g*130 : 150+g*255; let top=200, bot=800;
+  const tg = g => 3.5+3.2*(g-1);
+  function Y(i,n){ return top+(i+0.5)*((bot-top)/n); }
+  function draw(t){
+    top = PORTRAIT?310:200; bot = PORTRAIT?1210:800;
+    const LY = PORTRAIT ? {gen:230,z:270,nd:296,ext:760,rn:1300} : {gen:142,z:172,nd:826,ext:500,rn:852};
+    if(PORTRAIT) txt('E[Zₙ] = R₀ⁿ', 30, LY.rn-38, {f:'sans',size:13,c:K.muted,a:seg(t,16,17.5)});
+    for(let g=0; g<=5; g++){
+      const a = g===0?1:seg(t,tg(g),tg(g)+1);
+      label(PORTRAIT?`g${g}`:`gen ${g}`, X(g), LY.gen, 0.9);
+      if(a>0){ txt(PORTRAIT?Z[g].toLocaleString():`Z = ${Z[g].toLocaleString()}`, X(g), LY.z, {f:'mono',size:19,c:Z[g]===0?K.ext:K.inf,a,al:'center'}); }
+      const eA = seg(t,16,17.5);
+      if(eA>0) txt(PORTRAIT?fmt(Math.pow(P.R0,g),1):`R₀ⁿ = ${fmt(Math.pow(P.R0,g),1)}`, X(g), LY.rn, {f:'mono',size:16,c:K.muted,a:eA,al:'center'});
+      if(a>0 && Z[g]>cols[g].length && cols[g].length>0) txt(PORTRAIT?`+${(Z[g]-cols[g].length).toLocaleString()} hidden`:`+${(Z[g]-cols[g].length).toLocaleString()} not drawn`, X(g), LY.nd, {f:'sans',size:13,c:K.muted,a,al:'center'});
+      if(a>0 && Z[g]===0 && (g===0||Z[g-1]>0)) txt('extinct', X(g), LY.ext, {f:'sans',size:18,w:600,c:K.ext,a,al:'center'});
+    }
+    ctx.save(); const lab = seg(t,0,1); ctx.globalAlpha=lab; ctx.restore();
+    for(let g=1; g<=5; g++){
+      const col=cols[g], prev=cols[g-1];
+      col.forEach((c,i)=>{ const u=ease(seg(t,tg(g)+i*0.012,tg(g)+1.4+i*0.012)); if(u<=0) return;
+        const x0=X(g-1), y0=Y(c.p,prev.length), x1=X(g), y1=Y(i,col.length);
+        ctx.save(); ctx.strokeStyle=K.inf; ctx.globalAlpha=0.38; ctx.lineWidth=1.3; ctx.beginPath(); ctx.moveTo(x0,y0);
+        const mx=(x0+x1)/2; const xe=lerp(x0,x1,u), ye=lerp(y0,y1,ease(u));
+        ctx.bezierCurveTo(lerp(x0,mx,u),y0, lerp(x0,mx,u),lerp(y0,y1,u), xe,ye); ctx.stroke(); ctx.restore(); });
+    }
+    for(let g=0; g<=5; g++){
+      const col=cols[g]; const rr = clamp((bot-top)/Math.max(col.length,1)*0.28,3.5,11);
+      col.forEach((c,i)=>{ const appear = g===0?0:tg(g)+1.2+i*0.012; const u=seg(t,appear,appear+0.3); if(u<=0) return;
+        const x=X(g), y=Y(i,col.length);
+        const dead = g<5 && c.k===0 && t>tg(g+1)+1.4;
+        if(dead){ dot(x,y,rr,K.rec,u); ln(x+rr+3,y,x+rr+12,y,K.rec,1.5,u); }
+        else { const fresh = 1-seg(t,appear+0.3,appear+2.5); glow(x,y,rr*3.2,K.inf,u*(0.35+0.65*fresh)); dot(x,y,rr,K.inf,u); }
+      });
+    }
+  }
+  return {
+    name:'Branching process', dur:30, draw, build,
+    beats:[
+      {at:0, cap:'Andersson & Britton begin with a simple observation. Early in an outbreak almost everyone is susceptible, so each infected person acts independently of the others.'},
+      {at:3.5, cap:'Each infective produces a random number of new infections, all drawn from the same offspring distribution. Here it is Poisson with mean R₀.',
+       eq:{x:50,y:3,w:60,c:true,html:`<span class="box"><i>ξ</i> ~ Poisson(${R0h}) <span class="c-m">&nbsp;·&nbsp; offspring of one infective</span></span>`}},
+      {at:9.5, cap:'Generation sizes obey a short recursion: the next generation is the sum of the current generation’s offspring. This is a Galton–Watson branching process.',
+       eq:{x:50,y:2,w:60,c:true,html:`<span class="box"><i>Z</i>${SUB('<i>n</i>+1')} = ${SUM('<i>Z<sub>n</sub></i>','<i>i</i> = 1')} <i>ξ</i>${SUB('<i>i</i>')}</span>`}},
+      {at:16, cap:'On average the tree grows geometrically, E[Zₙ] = R₀ⁿ (bottom row). Averages hide something important: individual lineages often stop. Grey nodes are dead ends.',
+       eq:{x:50,y:3,w:60,c:true,html:`<span class="box">E[<i>Z<sub>n</sub></i>] = ${R0h}<sup><i>n</i></sup></span>`}},
+      {at:23, cap:'Press Resample a few times, or drag R₀ below 1. The same rule produces trees that fizzle out and trees that explode.',
+       eq:{x:50,y:3,w:60,c:true,html:`<span class="box">E[<i>Z<sub>n</sub></i>] = ${R0h}<sup><i>n</i></sup></span>`}}
+    ]
+  };
+})();
+
+/* =========================================================
+   Scene 2 — Extinction probability and the PGF
+   ========================================================= */
+const S2 = (() => {
+  const RUNS=40, GENS=15, CAP=1e4; let runs=[];
+  function build(){
+    const r = mulberry32(P.seed2*7919+5); runs=[];
+    for(let k=0;k<RUNS;k++){ const z=[1]; let cur=1;
+      for(let g=1; g<=GENS; g++){ if(cur===0||cur>=CAP){ z.push(cur); continue; }
+        cur = cur<200 ? Array.from({length:cur},()=>offspring(r)).reduce((a,b)=>a+b,0) : offspringMany(r,cur);
+        cur=Math.min(cur,CAP); z.push(cur); }
+      runs.push(z); }
+  }
+  let L, R;
+  const lay = () => { L = PORTRAIT ? {x0:120,x1:750,y0:250,y1:640} : {x0:90,x1:740,y0:170,y1:790}; R = PORTRAIT ? {x0:150,y0:820,s:460} : {x0:900,y0:170,s:600}; };
+  function draw(t){
+    lay();
+    // left: trajectories
+    label('40 simulated outbreaks', L.x0, L.y0-30);
+    frame(L.x0,L.y0,L.x1-L.x0,L.y1-L.y0,0.6);
+    for(let e=0;e<=4;e++){ const y=lerp(L.y1,L.y0,e/4); ln(L.x0,y,L.x1,y,K.line,1,0.5); txt(e===0?'0':`10${['','¹','²','³','⁴'][e]}`, L.x0-12, y+6, {f:'mono',size:15,c:K.muted,al:'right'}); }
+    for(let g=0;g<=GENS;g+=3){ const x=lerp(L.x0,L.x1,g/GENS); txt(`${g}`, x, L.y1+8+15*TS, {f:'mono',size:15,c:K.muted,al:'center'}); }
+    txt('generation n', (L.x0+L.x1)/2, L.y1+14+30*TS, {f:'sans',size:15,c:K.muted,al:'center'});
+    txt('Zₙ (log scale)', L.x0, L.y0-12+0, {f:'sans',size:14,c:K.muted,a:0});
+    const nv = seg(t,1.5,12)*GENS; let dead=0, big=0;
+    const yz = z => lerp(L.y1,L.y0, Math.log10(1+z)/4);
+    runs.forEach(z=>{
+      const pts=[]; const full=Math.floor(nv);
+      for(let g=0; g<=Math.min(full,GENS); g++) pts.push([lerp(L.x0,L.x1,g/GENS), yz(z[g])]);
+      if(full<GENS){ const f=nv-full, a=z[full], b=z[full+1]; pts.push([lerp(L.x0,L.x1,(full+f)/GENS), lerp(yz(a),yz(b),f)]); }
+      const lastG = Math.min(full,GENS); let zeroAt=-1; for(let g=0; g<=lastG; g++) if(z[g]===0){zeroAt=g;break;}
+      const seenMax = Math.max(...z.slice(0,lastG+1));
+      let c=K.muted, a=0.5, w=1.4;
+      if(zeroAt>=0){ c=K.ext; a=0.75; dead++; }
+      else if(seenMax>=100){ c=K.inf; a=0.7; w=1.6; if(seenMax>=CAP) big++; }
+      const cut = zeroAt>=0 ? pts.slice(0,zeroAt+1) : pts;
+      poly(cut,c,w,a);
+      if(zeroAt>=0){ const p=cut[cut.length-1]; dot(p[0],p[1],3.5,K.ext,0.9); }
+    });
+    txt(`died out: ${dead}`, L.x1, L.y1+22+50*TS, {f:'mono',size:17,c:K.ext,al:'right'});
+    txt(`reached 10⁴: ${big}`, L.x0, L.y1+22+50*TS, {f:'mono',size:17,c:K.inf});
+
+    // right: PGF cobweb
+    const a = seg(t,13,14.5); if(a<=0) return;
+    const X = s => R.x0+s*R.s, Y = v => R.y0+R.s-v*R.s;
+    ctx.save(); ctx.globalAlpha=a;
+    label(PORTRAIT?'generating function':'probability generating function', R.x0, R.y0-30);
+    frame(R.x0,R.y0,R.s,R.s,0.6);
+    ln(X(0),Y(0),X(1),Y(1),K.muted,1.2,0.7,[5,6]);
+    txt('G(s) = s', X(0.5)-12, Y(0.5)-10, {it:true,size:19,c:K.muted,al:'right'});
+    if(P.het){ const pts=[]; for(let i=0;i<=100;i++){const s=i/100; pts.push([X(s),Y(Math.exp(P.R0*(s-1)))]);} poly(pts,K.inf,1.4,0.35,[4,5]); }
+    const pts=[]; for(let i=0;i<=200;i++){const s=i/200; pts.push([X(s),Y(G(s))]);} poly(pts,P.het?K.vl:K.inf,3,1);
+    txt('G(s)', X(0.04), Y(G(0.04))-14, {it:true,size:21,c:P.het?K.vl:K.inf});
+    [0,0.5,1].forEach(v=>{ txt(`${v}`, X(v), Y(0)+26, {f:'mono',size:15,c:K.muted,al:'center'}); if(v) txt(`${v}`, X(0)-10, Y(v)+5, {f:'mono',size:15,c:K.muted,al:'right'}); });
+    txt('s', X(1)+16, Y(0)+6, {it:true,size:22,c:K.muted});
+    // cobweb
+    const steps = seg(t,14.5,22)*14; let q=0; const cw=[[X(0),Y(0)]];
+    for(let i=0;i<Math.ceil(steps);i++){ const f=clamp(steps-i); const nq=G(q);
+      if(f<0.5){ cw.push([X(q),Y(lerp(q,nq,f*2))]); break; }
+      cw.push([X(q),Y(nq)]); cw.push([X(lerp(q,nq,(f-0.5)*2)),Y(nq)]); q=nq; }
+    poly(cw,K.ext,2,0.95);
+    const qs=extinctionQ(); const qa=seg(t,21,22.5);
+    if(qa>0){ dot(X(qs),Y(qs),7,K.ext,qa); glow(X(qs),Y(qs),26,K.ext,qa);
+      txt(`q = ${fmt(qs,3)}`, X(qs)+16, Y(qs)+30, {f:'mono',size:20,c:K.ext,a:qa});
+      txt(PORTRAIT?`P(major) ≈ 1 − q = ${fmt(1-qs,3)}`:`P(major outbreak) ≈ 1 − q = ${fmt(1-qs,3)}`, R.x0, R.y0+R.s+30+20*TS, {f:'mono',size:18,c:K.ink,a:qa});
+    }
+    ctx.restore();
+  }
+  return {
+    name:'Extinction', dur:32, draw, build,
+    beats:[
+      {at:0, cap:'Run the same branching process forty times. Each line follows one outbreak’s generation sizes on a log scale.'},
+      {at:7, cap:'Many lines hit zero within a few generations. These are minor outbreaks: transmission chains that end by chance, even though R₀ is above 1.'},
+      {at:13.5, cap:'The extinction probability comes from the probability generating function of the offspring distribution, G(s) = E[s^ξ]. Since P(Zₙ₊₁ = 0) = G(P(Zₙ = 0)), iterating from zero walks down the staircase.',
+       eq:()=>({x:50,y:2,w:60,c:true,html:`<span class="box"><i>q</i>${SUB('<i>n</i>+1')} = <i>G</i>(<i>q<sub>n</sub></i>), &nbsp; ${P.het?`<span class="c-v"><i>G</i>(<i>s</i>) = (1 + ${R0h}(1−<i>s</i>)/<i>k</i>)<sup>−<i>k</i></sup></span>`:`<i>G</i>(<i>s</i>) = <i>e</i><sup>${R0h}(<i>s</i>−1)</sup>`}</span>`})},
+      {at:22, cap:'The staircase stops at q, the smallest root of q = G(q). For R₀ ≤ 1 that root is 1 and extinction is certain. Above 1, a major outbreak happens with probability 1 − q, which is the threshold theorem in its early-phase form.',
+       eq:{x:50,y:2,w:60,c:true,html:`<span class="box"><i>q</i> = <i>G</i>(<i>q</i>), &nbsp; P(major) = 1 − <i>q</i></span>`}},
+      {at:27, cap:'Now switch infectiousness to “varies”. The mean R₀ is unchanged, but offspring become overdispersed (negative binomial). Extinction gets more likely. Viral load is one source of exactly this variation.',
+       eq:{x:50,y:2,w:60,c:true,html:`<span class="box"><i>q</i> = <i>G</i>(<i>q</i>), &nbsp; P(major) = 1 − <i>q</i></span>`}}
+    ]
+  };
+})();
+
+/* =========================================================
+   Scene 3 — Mass action
+   ========================================================= */
+const S3 = (() => {
+  const N=320, I0=5, D=3, DT=1/60, START=1.5; let goodSeed=null, goodR0=null;
+  function seedFor(){ if(goodR0===P.R0 && goodSeed!==null) return goodSeed; goodR0=P.R0; goodSeed=4242;
+    if(P.R0>1.3){ for(let k=0;k<25;k++){ const sd=4242+k*31+Math.round(P.R0*100); goodSeed=sd; trialSeed=sd; reset(true); while(simT<30) step(); let R=0; for(let i=0;i<N;i++) if(st[i]===2) R++; if(R>0.3*N) break; } }
+    trialSeed=null; return goodSeed; }
+  let trialSeed=null;
+  let B={x0:60,y0:110,x1:940,y1:840};
+  const layB = () => { B = PORTRAIT ? {x0:40,y0:200,x1:760,y1:790} : {x0:60,y0:110,x1:940,y1:840}; };
+  let px,py,vx,vy,st,sparks,hist,simT,rng,focal,beta;
+  function reset(trial){
+    layB();
+    rng=mulberry32(trial? trialSeed : seedFor()); px=new Float32Array(N);py=new Float32Array(N);vx=new Float32Array(N);vy=new Float32Array(N);st=new Uint8Array(N);
+    for(let i=0;i<N;i++){ px[i]=lerp(B.x0+14,B.x1-14,rng()); py[i]=lerp(B.y0+14,B.y1-14,rng()); const a=rng()*6.283; vx[i]=Math.cos(a)*55; vy[i]=Math.sin(a)*55; }
+    for(let i=0;i<I0;i++) st[1+i*37]=1;
+    focal=0; sparks=[]; hist=[{t:0,S:N-I0,I:I0,R:0}]; simT=0; beta=P.R0/D;
+  }
+  function counts(){ let S=0,I=0,R=0; for(let i=0;i<N;i++){ if(st[i]===0)S++; else if(st[i]===1)I++; else R++; } return {S,I,R}; }
+  function step(){
+    for(let i=0;i<N;i++){ vx[i]+=normal(rng)*120*DT; vy[i]+=normal(rng)*120*DT; const sp=Math.hypot(vx[i],vy[i]); const tgt=55; vx[i]*=1+(tgt/sp-1)*0.05; vy[i]*=1+(tgt/sp-1)*0.05;
+      px[i]+=vx[i]*DT; py[i]+=vy[i]*DT;
+      if(px[i]<B.x0+8){px[i]=B.x0+8;vx[i]=Math.abs(vx[i])} if(px[i]>B.x1-8){px[i]=B.x1-8;vx[i]=-Math.abs(vx[i])}
+      if(py[i]<B.y0+8){py[i]=B.y0+8;vy[i]=Math.abs(vy[i])} if(py[i]>B.y1-8){py[i]=B.y1-8;vy[i]=-Math.abs(vy[i])} }
+    const inf=[]; for(let i=0;i<N;i++) if(st[i]===1) inf.push(i);
+    const pInf = 1-Math.exp(-beta*inf.length/N*DT), pRec = 1-Math.exp(-DT/D);
+    const newI=[];
+    if(inf.length) for(let i=0;i<N;i++) if(st[i]===0 && rng()<pInf) newI.push(i);
+    inf.forEach(i=>{ if(rng()<pRec) st[i]=2; });
+    newI.forEach(i=>{ st[i]=1; const s=inf[Math.floor(rng()*inf.length)]; sparks.push({s,i,t:simT}); });
+    simT+=DT;
+    if(st[focal]!==0){ for(let j=0;j<N;j++) if(st[j]===0){focal=j;break;} }
+    if(simT - hist[hist.length-1].t >= 0.1-1e-9){ const c=counts(); hist.push({t:simT,...c}); }
+  }
+  function ensure(t){ const target=Math.max(0,t-START); if(!px || target<simT-1e-6) reset(); while(simT+DT<=target+1e-9) step(); }
+  function draw(t){
+    ensure(t);
+    label('a well-mixed population, N = 320', B.x0, B.y0-18);
+    ctx.save(); ctx.strokeStyle=K.line; ctx.lineWidth=1.5; ctx.strokeRect(B.x0,B.y0,B.x1-B.x0,B.y1-B.y0); ctx.restore();
+    sparks = sparks.filter(s=>simT-s.t<0.9);
+    sparks.forEach(s=>{ const a=1-(simT-s.t)/0.9; ln(px[s.s],py[s.s],px[s.i],py[s.i],K.inf,1.6,0.6*a); });
+    const showFocal = t>7 && t<16.5 && st[focal]===0;
+    if(showFocal){ const fa=Math.min(seg(t,7,8),1-seg(t,15.5,16.5)); for(let i=0;i<N;i++) if(st[i]===1) ln(px[focal],py[focal],px[i],py[i],K.sus,1,0.22*fa); }
+    for(let i=0;i<N;i++){ if(st[i]===1) glow(px[i],py[i],16,K.inf,0.8); }
+    for(let i=0;i<N;i++){ const s=st[i]; dot(px[i],py[i],s===1?5:4.2, s===0?K.sus:s===1?K.inf:K.rec, s===2?0.55:0.95); }
+    const c = hist[hist.length-1];
+    if(showFocal){ const fa=Math.min(seg(t,7,8),1-seg(t,15.5,16.5)); const x=px[focal], y=py[focal];
+      ctx.save(); ctx.globalAlpha=fa; ctx.strokeStyle=K.ink; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(x,y,13,0,6.283); ctx.stroke(); ctx.restore();
+      const lw = 330*TS, lx = x>B.x1-lw? x-lw : x+22, ly = y<B.y0+60? y+44 : y-18;
+      ctx.save(); ctx.globalAlpha=0.88*fa; ctx.fillStyle=K.bg; ctx.fillRect(lx-8,ly-24*TS,lw-8,34*TS); ctx.restore();
+      txt(`λ = β·I/N = ${fmt(beta,2)}·${c.I}/${N} = ${fmt(beta*c.I/N,3)}`, lx, ly, {f:'mono',size:16,c:K.ink,a:fa}); }
+    // chart
+    const [Cx0, Cx1, Cy0, Cy1] = PORTRAIT ? [110, 690, 900, 1120] : [1010, 1540, 140, 460], TM=30;
+    label('S, I, R over time', Cx0, Cy0-24);
+    frame(Cx0,Cy0,Cx1-Cx0,Cy1-Cy0,0.6);
+    const xs=tt=>lerp(Cx0,Cx1,tt/TM), ys=v=>lerp(Cy1,Cy0,v/N);
+    [0,160,320].forEach(v=>txt(`${v}`,Cx0-8,ys(v)+5,{f:'mono',size:13,c:K.muted,al:'right'}));
+    [0,10,20,30].forEach(v=>txt(`${v}`,xs(v),Cy1+6+13*TS,{f:'mono',size:13,c:K.muted,al:'center'}));
+    txt('time', Cx1, Cy1+14+28*TS, {f:'sans',size:13,c:K.muted,al:'right'});
+    const ba = seg(t,21.5,23);
+    if(ba>0){ const pts=[]; for(let tt=0; tt<=TM; tt+=0.2){ const v=I0*Math.exp((beta-1/D)*tt); if(v>N) break; pts.push([xs(tt),ys(v)]); } poly(pts,K.inf,1.8,0.85*ba,[6,6]);
+      if(pts.length>2){ const p=pts[pts.length-1]; txt('branching prediction', p[0]+8, Math.max(p[1]+4,Cy0+16), {f:'sans',size:13,c:K.inf,a:ba}); } }
+    const series=(k,c)=>poly(hist.filter(h=>h.t<=TM).map(h=>[xs(h.t),ys(h[k])]),c,2.4,1);
+    series('S',K.sus); series('R',K.rec); series('I',K.inf);
+    const lastH=hist[hist.length-1];
+    if(lastH.t<=TM){ [['S',K.sus],['I',K.inf],['R',K.rec]].forEach(([k,c])=>txt(`${k} ${lastH[k]}`, xs(lastH.t)+8, ys(lastH[k])+5, {f:'mono',size:14,c})); }
+  }
+  return {
+    name:'Mass action', dur:36, draw, reset,
+    beats:[
+      {at:0, cap:'A branching process assumes susceptibles never run out. To follow a whole epidemic we need a model of contact. The classic choice is mass action, borrowed from chemistry: people mix like molecules in a well-stirred gas.'},
+      {at:7, cap:'Under mass action every infective contributes the same pressure. The ringed susceptible’s hazard of infection is proportional to how many people are infected right now, wherever they are.',
+       eq:{x:63,y:58,w:34,m:{x:50,y:84,w:92,c:true},html:`<span class="box"><span class="lbl">force of infection</span><i>λ</i>(<i>t</i>) = <i>β</i> ${FR('<i>I</i>(<i>t</i>)','<i>N</i>')}</span>`}},
+      {at:15, cap:'Summed over all susceptibles this gives the familiar SIR flow. Infectives recover at rate γ, so R₀ = β/γ.',
+       eq:{x:63,y:58,w:34,m:{x:50,y:84,w:92,c:true},html:`<span class="box"><span class="row"><span class="c-s">d<i>S</i>/d<i>t</i></span> = −<i>β</i> ${FR('<i>S I</i>','<i>N</i>')}</span><span class="row"><span class="c-i">d<i>I</i>/d<i>t</i></span> = <i>β</i> ${FR('<i>S I</i>','<i>N</i>')} − <i>γ I</i></span></span>`}},
+      {at:21.5, cap:'Early on, the infective count follows the branching prediction (dashed). It bends away once susceptibles are depleted, which is exactly where the branching approximation stops holding.',
+       eq:{x:63,y:58,w:34,m:{x:50,y:84,w:92,c:true},html:`<span class="box"><span class="row"><span class="c-s">d<i>S</i>/d<i>t</i></span> = −<i>β</i> ${FR('<i>S I</i>','<i>N</i>')}</span><span class="row"><span class="c-i">d<i>I</i>/d<i>t</i></span> = <i>β</i> ${FR('<i>S I</i>','<i>N</i>')} − <i>γ I</i></span></span>`}},
+      {at:28, cap:'In discrete time each susceptible escapes the day’s pressure with probability e^(−λₜ): the Reed–Frost chain binomial. Our Stan model uses its linearisation, expected incidence λₜSₜ capped at Sₜ, which is accurate while λₜ is small.',
+       eq:{x:63,y:58,w:34,m:{x:50,y:84,w:92,c:true},html:`<span class="box"><span class="lbl">Reed–Frost and its linearisation</span><span class="row"><i>p<sub>t</sub></i> = 1 − <i>e</i><sup>−<i>λ<sub>t</sub></i></sup> ≈ <i>λ<sub>t</sub></i></span><span class="row">E[<i>c</i><sub><i>t</i>+1</sub>] = min(<i>λ<sub>t</sub> S<sub>t</sub></i>, <i>S<sub>t</sub></i>)</span></span>`}}
+    ]
+  };
+})();
+
+/* =========================================================
+   Real data: fitted posterior summaries (explainer_data.js)
+   ========================================================= */
+const DATA = window.EXPLAINER_DATA || null;
+const DS_KEYS = DATA ? Object.keys(DATA.datasets) : [];
+let dsKey = DS_KEYS[0] || null;
+try { const s = localStorage.getItem('explainer.ds'); if (s && DS_KEYS.includes(s)) dsKey = s; } catch (e) {}
+const NA = v => v === null || v === undefined || Number.isNaN(v);
+function sumAges(mat){ const T = mat[0].length, out = new Array(T); for (let t = 0; t < T; t++){ let s = 0, n = 0; for (const r of mat){ const v = r[t]; if (!NA(v)){ s += v; n++; } } out[t] = n ? s : null; } return out; }
+function rollMean(a, k){ return a.map((_, i) => { let s = 0, n = 0; for (let j = Math.max(0, i - k + 1); j <= i; j++) if (!NA(a[j])){ s += a[j]; n++; } return n ? s / n : null; }); }
+function dateOf(d, t){ const x = new Date(d.start_date + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + t - 1); return x; }
+function fmtD(x){ const p = n => String(n).padStart(2, '0'); return `${p(x.getUTCDate())}-${p(x.getUTCMonth() + 1)}-${x.getUTCFullYear()}`; }
+function fmtN(v, d = 0){ if (NA(v)) return '—'; const a = Math.abs(v); if (a >= 1e6) return (v / 1e6).toFixed(1) + 'M'; if (a >= 1e4) return (v / 1e3).toFixed(0) + 'k'; if (a >= 1e3) return (v / 1e3).toFixed(1) + 'k'; return v.toFixed(d); }
+function fmtS(v){ if (NA(v)) return '—'; const a = Math.abs(v); return a >= 100 ? v.toFixed(0) : a >= 10 ? v.toFixed(1) : a >= 1 ? v.toFixed(2) : v.toPrecision(2); }
+function median(a){ const b = a.filter(v => !NA(v) && Number.isFinite(v)).sort((x, y) => x - y); return b.length ? b[Math.floor(b.length / 2)] : null; }
+function niceMax(v){ if (!(v > 0)) return 1; const e = Math.pow(10, Math.floor(Math.log10(v))); const m = v / e; for (const k of [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (m <= k + 1e-9) return k * e; return 10 * e; }
+const scal = (V, base, i = 0) => (V.scalars[base] && V.scalars[base][i]) ? V.scalars[base][i].median : null;
+
+/* Derived all-age series and plug-in force of infection, computed once per case study. */
+const PREP = {};
+function prep(key){
+  if (PREP[key]) return PREP[key];
+  const d = DATA.datasets[key], G = d.age_groups.length, M = d.contact_matrix.M, Na = d.contact_matrix.N_age;
+  const p = { cases: sumAges(d.obs.cases), deaths: sumAges(d.obs.deaths) };
+  p.signal = d.signal_shared_across_ages ? d.obs.signal[0].slice() : sumAges(d.obs.signal);
+  p.signal7 = rollMean(p.signal, 7);
+  p.v = {};
+  for (const vk of ['C', 'VLC']){
+    const V = d.variants[vk], ts = V.ts, T = ts.I_all.q50[0].length, o = {};
+    o.I = sumAges(ts.I_all.q50); o.Ic = sumAges(ts.I_cases_all.q50); o.Iv = sumAges(ts.I_vl_all.q50);
+    o.latent = sumAges(ts.latent_cases_all.q50); o.yrep = sumAges(V.yrep.q50);
+    o.lam = []; o.Lam = []; o.haz = new Array(T).fill(null); o.next = new Array(T).fill(null);
+    for (let g = 0; g < G; g++){ o.Lam.push(new Array(T).fill(null)); o.lam.push(new Array(T).fill(null)); }
+    for (let t = 0; t < T; t++){
+      let num = 0, den = 0, nx = 0, ok = true;
+      for (let g = 0; g < G; g++){
+        let L = 0; for (let h = 0; h < G; h++){ const I = ts.I_all.q50[h][t]; if (NA(I)){ ok = false; break; } L += M[g][h] * I / Na[h]; }
+        if (!ok) break;
+        const b = ts.beta_all.q50[g][t], S = ts.S_all.q50[g][t];
+        if (NA(b) || NA(S)){ ok = false; break; }
+        o.Lam[g][t] = L; o.lam[g][t] = b * L; num += b * L * S; den += S; nx += Math.min(b * L * S, S);
+      }
+      if (ok && den > 0){ o.haz[t] = num / den * 1e5; o.next[t] = nx; }
+    }
+    o.vlShare = o.I.map((v, t) => (NA(v) || v <= 0 || NA(o.Iv[t])) ? null : o.Iv[t] / v);
+    o.Reff = ts.R_eff_vlapp || null; o.Rcase = ts.R_eff_case || null;
+    p.v[vk] = o;
+  }
+  const sh = p.v.VLC.vlShare.slice(d.tau, d.N); p.vlShareFit = median(sh);
+  const I1 = p.v.C.I.slice(d.tau, d.N), I2 = p.v.VLC.I.slice(d.tau, d.N);
+  const hz = p.v.VLC.haz.slice(d.tau, d.N).map((v, i) => NA(v) || NA(p.v.C.haz[d.tau + i]) || p.v.C.haz[d.tau + i] <= 0 ? null : v / p.v.C.haz[d.tau + i]);
+  p.hazRatio = median(hz);
+  const rN = k => { const r = p.v[k]; return { vl: r.Reff ? r.Reff.q50[d.N - 1] : null, cs: r.Rcase ? r.Rcase.q50[d.N - 1] : null }; };
+  p.R_C = rN('C'); p.R_V = rN('VLC');
+  return (PREP[key] = p);
+}
+
+/* ---------- small plotting kit (stage coordinates) ---------- */
+function panel(x0, y0, x1, y1, t0, t1, y0v, y1v){ return { x0, y0, x1, y1, t0, t1, ymin: y0v, ymax: y1v, X: t => lerp(x0, x1, (t - t0) / (t1 - t0)), Y: v => lerp(y1, y0, (v - y0v) / (y1v - y0v)) }; }
+function axes(P, d, o = {}){
+  frame(P.x0, P.y0, P.x1 - P.x0, P.y1 - P.y0, 0.55);
+  if (o.title) label(o.title, P.x0, P.y0 - 12, o.a ?? 1);
+  const fs = o.fs || 13, yt = o.yTicks || [P.ymin, (P.ymin + P.ymax) / 2, P.ymax];
+  yt.forEach(v => { const y = P.Y(v); if (v !== P.ymin && v !== P.ymax) ln(P.x0, y, P.x1, y, K.line, 1, 0.45); if (o.inside){ if (v !== P.ymin) txt((o.yFmt || fmtN)(v), P.x1 - 6, y + 4 + fs * TS, { f: 'mono', size: fs, c: K.muted, al: 'right' }); } else txt((o.yFmt || fmtN)(v), P.x0 - 8, y + 5, { f: 'mono', size: fs, c: K.muted, al: 'right' }); });
+  if (d && o.dates !== false){
+    const n = o.nDates || 3; for (let i = 0; i < n; i++){ const t = Math.round(lerp(P.t0, P.t1, n === 1 ? 0.5 : i / (n - 1))); txt(fmtD(dateOf(d, t)), P.X(t), P.y1 + 6 + fs * TS, { f: 'mono', size: fs, c: K.muted, al: i === 0 ? 'left' : i === n - 1 ? 'right' : 'center' }); }
+  }
+}
+function series(P, arr, tA, tB, c, w = 2, a = 1, dash){
+  ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = w; ctx.globalAlpha = a; ctx.lineJoin = 'round'; if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); let pen = false;
+  for (let t = Math.max(tA, P.t0); t <= Math.min(tB, P.t1); t++){ const v = arr[t - 1]; if (NA(v)){ pen = false; continue; } const x = P.X(t), y = clamp(P.Y(v), P.y0 - 2, P.y1); pen ? ctx.lineTo(x, y) : ctx.moveTo(x, y); pen = true; }
+  ctx.stroke(); ctx.restore();
+}
+function bandP(P, lo, hi, tA, tB, c, a = 0.18){
+  const pts = []; for (let t = Math.max(tA, P.t0); t <= Math.min(tB, P.t1); t++){ if (!NA(lo[t - 1]) && !NA(hi[t - 1])) pts.push(t); }
+  if (pts.length < 2) return;
+  ctx.save(); ctx.fillStyle = hexA(c, a); ctx.beginPath();
+  pts.forEach((t, i) => { const x = P.X(t), y = clamp(P.Y(hi[t - 1]), P.y0, P.y1); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+  for (let i = pts.length - 1; i >= 0; i--){ const t = pts[i]; ctx.lineTo(P.X(t), clamp(P.Y(lo[t - 1]), P.y0, P.y1)); }
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function pointsP(P, arr, tA, tB, c, r = 2.2, a = 0.7){ ctx.save(); ctx.fillStyle = c; ctx.globalAlpha = a; for (let t = Math.max(tA, P.t0); t <= Math.min(tB, P.t1); t++){ const v = arr[t - 1]; if (NA(v)) continue; const y = P.Y(v); if (y < P.y0 || y > P.y1) continue; ctx.beginPath(); ctx.arc(P.X(t), y, r, 0, 6.283); ctx.fill(); } ctx.restore(); }
+function shadeFc(P, d, a = 1){ const xa = P.X(Math.max(P.t0, d.N + 0.5)), xb = P.X(Math.min(P.t1, d.T + 0.5)); if (xb <= xa) return; ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = hexA(K.muted, 0.1); ctx.fillRect(xa, P.y0 + 1, xb - xa, P.y1 - P.y0 - 2); ctx.restore(); ln(xa, P.y0, xa, P.y1, K.muted, 1, 0.6 * a, [2, 4]); }
+function cursor(P, t, a = 0.8){ if (t < P.t0 || t > P.t1) return; ln(P.X(t), P.y0, P.X(t), P.y1, K.ink, 1.3, a); }
+/* Legend; wraps to a new line at maxX. Returns the y of its last line. */
+function legend(items, x, y, a = 1, maxX = W - 30){ let cx = x, cy = y; const fs = 14 * TS, lh = fs * 1.6;
+  ctx.save(); ctx.font = `400 ${fs}px ${FS}`;
+  items.forEach(([name, c, dash]) => { const w = 28 + ctx.measureText(name).width; if (cx > x && cx + w > maxX){ cx = x; cy += lh; } ln(cx, cy - 5, cx + 22, cy - 5, c, 2.6, a, dash); txt(name, cx + 28, cy, { f: 'sans', size: 14, c: K.ink, a }); ctx.font = `400 ${fs}px ${FS}`; cx += w + 22; });
+  ctx.restore(); return cy; }
+function noData(){ txt('No fitted data loaded.', W / 2, H / 2 - 20, { f: 'sans', size: 26, c: K.ink, al: 'center' }); txt('Run scripts/build_branching_explainer_data.py', W / 2, H / 2 + 22, { f: 'mono', size: 17, c: K.muted, al: 'center' }); }
+const DSLAB = () => DATA ? DATA.datasets[dsKey].label : '';
+
+/* =========================================================
+   Scene 5 — Who infects whom (age-structured mass action, real)
+   ========================================================= */
+const S4 = (() => {
+  const dayAt = (d, t) => Math.round(lerp(d.tau + 8, d.N - 1, ease(seg(t, 4, 33))));
+  const LAY = {
+    land: { HM: { x: 150, y: 240, s: 88 }, st: { x0: 640, x1: 1540, y0: 240, rowH: 62, gap: 14, span: 150 }, fl: { x0: 150, x1: 470, y0: 712, dy: 50, ty: 672 }, D: [720, 640, 1540, 820], dTitle: 'all ages · observed cases vs expected  Σ_g min(λ_g S_g, S_g)' },
+    port: { HM: { x: 130, y: 260, s: 70 }, st: { x0: 120, x1: 760, y0: 690, rowH: 58, gap: 12, span: 90 }, fl: { x0: 520, x1: 680, y0: 300, dy: 66, ty: 230 }, D: [120, 1060, 760, 1230], dTitle: 'all ages · observed vs expected' }
+  };
+  function draw(t){
+    if (!DATA) return noData();
+    const Lo = PORTRAIT ? LAY.port : LAY.land, HM = Lo.HM;
+    const d = DATA.datasets[dsKey], p = prep(dsKey), V = d.variants.C, G = d.age_groups.length, M = d.contact_matrix.M, Na = d.contact_matrix.N_age, tau = d.tau;
+    const day = dayAt(d, t), ti = day - 1;
+    const mode = ease(seg(t, 13, 14.5));
+    const I = V.ts.I_all.q50.map(r => r[ti]);
+    const contrib = M.map(row => row.map((c, h) => c * I[h] / Na[h]));
+    // ---- A: contact matrix / infectious-contact heatmap
+    label(mode < 0.5 ? 'contacts per day  C_gh' : (PORTRAIT ? 'infectious contacts /100k' : 'infectious contacts per day per 100k'), HM.x - 10, HM.y - 26 - 22 * TS);
+    txt('source h →', HM.x + HM.s * 2, HM.y - 26, { f: 'sans', size: 13, c: K.muted, al: 'center' });
+    const mxC = Math.max(...M.flat()), mxI = Math.max(...contrib.flat()) || 1;
+    for (let g = 0; g < G; g++) for (let h = 0; h < G; h++){
+      const v = lerp(M[g][h] / mxC, contrib[g][h] / mxI, mode);
+      const x = HM.x + h * HM.s, y = HM.y + g * HM.s;
+      ctx.fillStyle = hexA(mode < 0.5 ? K.sus : K.inf, 0.08 + 0.8 * Math.sqrt(v)); ctx.fillRect(x + 2, y + 2, HM.s - 4, HM.s - 4);
+      const val = mode < 0.5 ? M[g][h].toFixed(PORTRAIT ? 1 : 2) : (contrib[g][h] * 1e5).toFixed(contrib[g][h] * 1e5 >= 10 ? 0 : 1);
+      txt(val, x + HM.s / 2, y + HM.s / 2 + 6, { f: 'mono', size: 16, c: v > 0.45 ? K.bg : K.ink, al: 'center' });
+    }
+    d.age_groups.forEach((a, i) => { txt(a, HM.x - 10, HM.y + i * HM.s + HM.s / 2 + 5, { f: 'mono', size: 14, c: K.muted, al: 'right' }); txt(a, HM.x + i * HM.s + HM.s / 2, HM.y - 6, { f: 'mono', size: PORTRAIT ? 11 : 14, c: K.muted, al: 'center' }); txt(fmtN(Na[i]), HM.x + i * HM.s + HM.s / 2, HM.y + G * HM.s + 8 + 13 * TS, { f: 'mono', size: PORTRAIT ? 11 : 13, c: K.muted, al: 'center' }); });
+    if (!PORTRAIT) txt('recipient g ↓', HM.x - 10, HM.y - 26, { f: 'sans', size: 13, c: K.muted, al: 'right' });
+
+    // ---- B: case strips by age with sliding tau window
+    const S = Lo.st, { x0: sx0, x1: sx1, y0: sy0, rowH, gap } = S;
+    const tA = Math.max(1, d.N - S.span), Pt = t2 => lerp(sx0, sx1, (t2 - tA) / (d.N - tA + 1));
+    label(PORTRAIT ? `cases by age · last τ = ${tau} days` : `reported cases by age · active set = last τ = ${tau} days`, sx0, sy0 - 22);
+    const bw = (sx1 - sx0) / (d.N - tA + 1) * 0.78;
+    for (let g = 0; g < G; g++){
+      const y0 = sy0 + g * (rowH + gap), row = d.obs.cases[g];
+      const mx = niceMax(Math.max(...row.slice(tA - 1, d.N).filter(v => !NA(v))));
+      ln(sx0, y0 + rowH, sx1, y0 + rowH, K.line, 1, 0.8);
+      txt(d.age_groups[g], sx0 - 10, y0 + rowH / 2 + 5, { f: 'mono', size: PORTRAIT ? 11 : 14, c: K.muted, al: 'right' });
+      for (let s = tA; s <= d.N; s++){
+        const v = row[s - 1]; if (NA(v)) continue; const h = (v / mx) * rowH, inW = s > day - tau && s <= day;
+        ctx.fillStyle = inW ? K.inf : s > day ? hexA(K.rec, 0.25) : hexA(K.rec, 0.6); ctx.fillRect(Pt(s) - bw / 2, y0 + rowH - h, bw, h);
+      }
+      ctx.save(); ctx.strokeStyle = hexA(K.inf, 0.7); ctx.lineWidth = 1.2; ctx.strokeRect(Pt(day - tau + 1) - bw, y0 - 4, Pt(day) - Pt(day - tau + 1) + 2 * bw, rowH + 6); ctx.restore();
+      const ra = seg(t, 6, 7.5);
+      if (ra > 0) txt(PORTRAIT ? `I ${fmtN(I[g])} · ${(I[g] / Na[g] * 1e5).toFixed(0)}/100k` : `I = ${fmtN(I[g])}   I/N = ${(I[g] / Na[g] * 1e5).toFixed(0)} per 100k`, Pt(day) - Pt(day - tau + 1) > 0 && Pt(day) > (sx0 + sx1) / 2 ? sx0 + 6 : sx1, y0 + 4 + 14 * TS, { f: 'mono', size: 14, c: K.inf, al: Pt(day) > (sx0 + sx1) / 2 ? 'left' : 'right', a: ra });
+    }
+    const yb = sy0 + G * (rowH + gap) + 4 + 4 * TS;
+    txt(`day ${fmtD(dateOf(d, day))}`, clamp(Pt(day), sx0 + 90 * TS, sx1 - 90 * TS), yb, { f: 'mono', size: 13, c: K.ink, al: 'center' });
+    if (!PORTRAIT){ if (Pt(day) < sx1 - 190) txt(`origin ${fmtD(dateOf(d, d.N))}`, sx1, yb, { f: 'mono', size: 13, c: K.muted, al: 'right' }); if (Pt(day) > sx0 + 190) txt(fmtD(dateOf(d, tA)), sx0, yb, { f: 'mono', size: 13, c: K.muted }); }
+
+    // ---- C: flow diagram, sources -> recipients
+    const fa = seg(t, 14, 16);
+    if (fa > 0){
+      ctx.save(); ctx.globalAlpha = fa;
+      const F = Lo.fl, fx0 = F.x0, fx1 = F.x1, fy0 = F.y0, fdy = F.dy;
+      label(PORTRAIT ? 'who infects whom' : 'who infects whom today', PORTRAIT ? fx0 - 40 : 60, F.ty);
+      txt('source', fx0, fy0 - 30, { f: 'sans', size: 13, c: K.muted, al: 'center' }); txt('recipient', fx1, fy0 - 30, { f: 'sans', size: 13, c: K.muted, al: 'center' });
+      const mxE = Math.max(...contrib.flat()) || 1, bend = (fx1 - fx0) * 0.45;
+      for (let g = 0; g < G; g++) for (let h = 0; h < G; h++){ const w = contrib[g][h] / mxE; if (w < 0.02) continue; ctx.save(); ctx.strokeStyle = K.inf; ctx.globalAlpha = fa * (0.15 + 0.6 * w); ctx.lineWidth = 1 + 12 * w; ctx.beginPath(); ctx.moveTo(fx0 + 16, fy0 + h * fdy); ctx.bezierCurveTo(fx0 + bend, fy0 + h * fdy, fx1 - bend, fy0 + g * fdy, fx1 - 16, fy0 + g * fdy); ctx.stroke(); ctx.restore(); }
+      const prev = I.map((v, h) => v / Na[h]), mxP = Math.max(...prev) || 1;
+      const lam = p.v.C.lam.map(r => r[ti]), mxL = Math.max(...lam) || 1;
+      for (let i = 0; i < G; i++){
+        const rs = 5 + 11 * Math.sqrt(prev[i] / mxP), rr = 5 + 11 * Math.sqrt((lam[i] || 0) / mxL);
+        glow(fx0, fy0 + i * fdy, rs * 2.2, K.inf, 0.7); dot(fx0, fy0 + i * fdy, rs, K.inf); if (!PORTRAIT) txt(d.age_groups[i], fx0 - 24, fy0 + i * fdy + 5, { f: 'mono', size: 13, c: K.muted, al: 'right' });
+        dot(fx1, fy0 + i * fdy, rr, K.sus); txt(`λ ${(lam[i] * 1e5).toFixed(0)}`, fx1 + 20, fy0 + i * fdy + 6, { f: 'mono', size: 13, c: K.sus });
+      }
+      txt(PORTRAIT ? 'λ per 100k/day' : '(λ per 100k per day)', fx1 + (PORTRAIT ? -20 : 24), fy0 + (PORTRAIT ? G * fdy - 10 : -30), { f: 'sans', size: 12, c: K.muted, al: PORTRAIT ? 'center' : 'left' });
+      ctx.restore();
+    }
+
+    // ---- D: one-step-ahead check, all ages
+    const da = seg(t, 21, 23);
+    if (da > 0){
+      ctx.save(); ctx.globalAlpha = da;
+      const [x0, y0, x1, y1] = Lo.D, span = PORTRAIT ? 90 : 150;
+      const P = panel(x0, y0, x1, y1, Math.max(d.tau + 1, d.N - span), d.N, 0, niceMax(Math.max(...p.cases.slice(Math.max(0, d.N - span - 1), d.N).filter(v => !NA(v)), 1)));
+      axes(P, d, { title: Lo.dTitle, yTicks: [0, P.ymax / 2, P.ymax], nDates: PORTRAIT ? 2 : 3 });
+      pointsP(P, p.cases, P.t0, day + 1, K.ink, 2.2, 0.75);
+      series(P, p.v.C.next.map((v, i) => p.v.C.next[i - 1] ?? null), P.t0, day + 1, K.sus, 2.4, 1);
+      cursor(P, day + 1, 0.6);
+      legend([['Observed cases', K.ink], ['Expected, I=C (plug-in)', K.sus]], P.x0, P.y1 + 30 + 14 * TS, 1, P.x1);
+      ctx.restore();
+    }
+  }
+  const eqI = `<span class="box"><span class="lbl">active set</span><i>I<sub>h,t</sub></i> = <i>a<sub>C</sub></i> ${SUM('<i>t</i>', '<i>s</i> = <i>t</i>−<i>τ</i>+1')} <i>c<sub>h,s</sub></i></span>`;
+  const eqL = `<span class="box"><span class="lbl">infectious pressure</span><i>Λ<sub>g,t</sub></i> = ${SUM('<i>G</i>', '<i>h</i>=1')} <i>C<sub>gh</sub></i> ${FR('<i>I<sub>h,t</sub></i>', '<i>N<sub>h</sub></i>')}</span>`;
+  const eqF = `<span class="box"><span class="lbl">force of infection · incidence</span><span class="row"><i>λ<sub>g,t</sub></i> = <i>β<sub>g,t</sub></i> <i>Λ<sub>g,t</sub></i></span><span class="row">E[<i>c</i><sub><i>g,t</i>+1</sub>] = min(<i>λ<sub>g,t</sub> S<sub>g,t</sub></i>, <i>S<sub>g,t</sub></i>)</span></span>`;
+  return {
+    name: 'Who infects whom', dur: 38, draw, real: true,
+    beats: [
+      { at: 0, cap: () => `Real populations are not one well-stirred gas. The model splits ${DATA ? DATA.datasets[dsKey].place : 'the population'} into four age groups that meet through a contact matrix: row g is the person at risk, column h the person they meet. Most contact happens within one's own age group, so the diagonal dominates.` },
+      { at: 6, cap: () => { if (!DATA) return ''; const d = DATA.datasets[dsKey]; return `Each age group's active set counts its reported cases from the last τ = ${d.tau} days (the gold window), scaled by a_C = ${fmtS(scal(d.variants.C, 'cases_coef'))}. This box-car is the model's prevalence proxy: a case is infectious with equal weight for ${d.tau} days, then not at all.`; }, eq: { x: 50, y: 1.2, w: 60, c: true, html: eqI } },
+      { at: 13, cap: 'I_h/N_h is group h’s active set per head: a pressure proxy on the model’s own scale, not a probability. Multiply by C_gh and sum over sources: Λ_g is the contact-weighted pressure on one g-person. The heatmap now shows those infectious contacts, and the flow diagram draws them.', eq: { x: 50, y: 0.8, w: 60, c: true, html: eqL } },
+      { at: 21, cap: 'The Gaussian process β_{g,t} = exp(μ_g + f_g(t)) turns infectious contacts into a hazard. Expected incidence is λS, capped at S: the linearisation of the chain-binomial 1 − e^(−λ). In-sample the active set uses observed cases, so the fit is a one-step-ahead negative-binomial autoregression (bottom panel).', eq: { x: 50, y: 0.8, w: 60, c: true, html: eqF } },
+      { at: 30, cap: 'One structural detail matters for what follows. β_g can only rescale rows of the contact matrix (who is at risk). Anything that changes the columns (how infectious each source group is) must come through the active set. That is where viral load enters.', eq: { x: 50, y: 0.8, w: 60, c: true, html: eqF } }
+    ]
+  };
+})();
+
+/* =========================================================
+   Scene 6 — Why viral load (illustrative, synthetic)
+   ========================================================= */
+const S5 = (() => {
+  const ND = 70;
+  const Cs = [], ml = []; let Vr = [];
+  const lv = a => a < 2 ? 4 + 4 * a / 2 : Math.max(2, 8 - 0.4 * (a - 2));
+  for (let d = 0; d < ND; d++) Cs.push(20 + 950 * Math.exp(-(((d - 32) / 8) ** 2)));
+  const ageW = d => { const w = []; for (let a = 0; a < 16; a++) w.push(Cs[Math.max(0, d - a)]); return w; };
+  for (let d = 0; d < ND; d++){ const w = ageW(d); let s = 0, z = 0; w.forEach((c, a) => { s += c * lv(a + 0.5); z += c; }); ml.push(s / z); }
+  { const M = ml.reduce((a, b) => a + b) / ND; const V = ml.map(m => Math.pow(10, 0.25 * (m - M))); const mv = V.reduce((a, b) => a + b) / ND; Vr = V.map(v => v / mv); }
+  const day = t => Math.round(12 + seg(t, 5, 26) * 46);
+  function draw(t){
+    const A = PORTRAIT ? { x0: 110, y0: 210, x1: 750, y1: 600 } : { x0: 90, y0: 170, x1: 700, y1: 560 };
+    const B = PORTRAIT ? { x0: 110, y0: 790, x1: 750, y1: 1180 } : { x0: 820, y0: 170, x1: 1540, y1: 560 };
+    const td = day(t);
+    label('within one host (illustrative)', A.x0, A.y0 - 22);
+    frame(A.x0, A.y0, A.x1 - A.x0, A.y1 - A.y0, 0.6);
+    const ax = a => lerp(A.x0, A.x1, a / 16), ay = v => lerp(A.y1, A.y0, (v - 2) / 7);
+    [2, 5, 8].forEach(v => txt(`${v}`, A.x0 - 8, ay(v) + 5, { f: 'mono', size: 14, c: K.muted, al: 'right' }));
+    [0, 5, 10, 15].forEach(v => txt(`${v}`, ax(v), A.y1 + 8 + 14 * TS, { f: 'mono', size: 14, c: K.muted, al: 'center' }));
+    txt('days since infection', A.x1, A.y1 + 16 + 30 * TS, { f: 'sans', size: 14, c: K.muted, al: 'right' });
+    txt('log₁₀ copies/mL', A.x0 + 10, A.y0 + 10 + 14 * TS, { f: 'sans', size: 14, c: K.muted });
+    const indiv = [[1.6, 8.6, 0.33], [2.4, 7.1, 0.45], [2, 7.9, 0.55], [2.8, 6.6, 0.4], [1.8, 8.2, 0.7]];
+    const ia = 1 - 0.6 * seg(t, 6, 8);
+    indiv.forEach(([tp, pk, sl], k) => { const f = a => a < tp ? 4 + (pk - 4) * a / tp : Math.max(2, pk - sl * (a - tp)); const pts = []; for (let a = 0; a <= 16; a += 0.1) pts.push([ax(a), ay(f(a))]); poly(pts, K.vl, 1.3, 0.35 * ia); const a = (t * 1.6 + k * 2.7) % 16; glow(ax(a), ay(f(a)), 8 + 3 * (f(a) - 2), K.vl, 0.9 * ia); dot(ax(a), ay(f(a)), 3.5, K.vl, ia); });
+    { const pts = []; for (let a = 0; a <= 16; a += 0.1) pts.push([ax(a), ay(lv(a))]); poly(pts, K.vl, 2.6, 0.4 + 0.6 * seg(t, 6, 8)); }
+    const sa = seg(t, 6.5, 8);
+    if (sa > 0){ const w = ageW(td), z = w.reduce((a, b) => a + b); const cum = []; w.reduce((acc, c, i) => (cum[i] = acc + c, acc + c), 0);
+      for (let k = 0; k < 18; k++){ const u = (k + 0.5) / 18 * z; let a = cum.findIndex(c => c >= u); a = a < 0 ? 15 : a; const age = Math.min(15.8, a + ((k * 0.618) % 1)); dot(ax(age), ay(lv(age)) + ((k * 7) % 5 - 2) * 3, 4.4, K.ink, sa * 0.95); }
+      txt(PORTRAIT ? `positives today · mean ${fmt(ml[td], 2)}` : `today’s positives · mean log₁₀ VL ${fmt(ml[td], 2)}`, A.x0 + 10, A.y1 - 14, { f: 'mono', size: 15, c: K.ink, a: sa }); }
+    const aB = 0.18 + 0.82 * seg(t, 6, 7.5);
+    ctx.save(); ctx.globalAlpha = aB;
+    label(PORTRAIT ? 'cases and viral load (illustrative)' : 'cases and population viral load (illustrative)', B.x0, B.y0 - 22);
+    frame(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0, 0.6);
+    const bx = d => lerp(B.x0, B.x1, (d + 0.5) / ND), bw = (B.x1 - B.x0) / ND * 0.72;
+    for (let d = 0; d < ND; d++){ const h = Cs[d] / 1000 * (B.y1 - B.y0 - 40); ctx.fillStyle = d <= td ? hexA(K.inf, 0.75) : hexA(K.rec, 0.25); ctx.fillRect(bx(d) - bw / 2, B.y1 - h, bw, h); }
+    const vy = v => lerp(B.y1, B.y0 + 24, v / 2.2);
+    ln(B.x0, vy(1), B.x1, vy(1), K.vl, 1, 0.5, [3, 6]); txt('average', B.x1 - 8, vy(1) - 8, { f: 'sans', size: 14, c: K.vl, al: 'right', a: 0.85 });
+    poly(Vr.slice(0, td + 1).map((v, d) => [bx(d), vy(v)]), K.vl, 2.8, 0.95);
+    cursor({ x0: B.x0, x1: B.x1, y0: B.y0, y1: B.y1, t0: 0, t1: ND, X: bx }, td, 0.8);
+    legend([['Reported cases', K.inf], ['Relative viral load of positives', K.vl]], B.x0, B.y1 + 20 + 14 * TS, 1, B.x1);
+    const pkC = Cs.indexOf(Math.max(...Cs)), pkV = Vr.indexOf(Math.max(...Vr)), pa = seg(t, 18, 19.5);
+    if (pa > 0){ ln(bx(pkV), B.y0, bx(pkV), B.y1, K.vl, 1.2, 0.7 * pa, [3, 5]); ln(bx(pkC), B.y0, bx(pkC), B.y1, K.inf, 1.2, 0.7 * pa, [3, 5]); txt(PORTRAIT ? `VL peaks ${pkC - pkV} days earlier` : `viral load peaks ${pkC - pkV} days before cases`, B.x0 + 16, B.y0 + 10 + 16 * TS, { f: 'mono', size: 16, c: K.ink, a: pa }); }
+    ctx.restore();
+  }
+  return {
+    name: 'Why viral load', dur: 30, draw,
+    beats: [
+      { at: 0, cap: 'Mass action counts infectives but treats them all alike. Infectiousness differs between people and changes within one infection: viral load climbs in the first days, then falls over the following weeks. (This scene uses synthetic curves.)' },
+      { at: 6.5, cap: 'Testing gives a cross-section: everyone positive today, each at a different point of their infection (white dots). In a growing epidemic most positives are recent and near peak viral load; in a declining one they are older and lower.' },
+      { at: 18, cap: 'So the population viral-load signal tends to lead reported cases. Wastewater carries a related signal: it sums shedding over the whole sewershed, tested or not. Either way, viral load measures something cases miss. Next: what our fitted models do with it.' }
+    ]
+  };
+})();
+
+/* =========================================================
+   Scene 7 — Viral load in the active set (real)
+   ========================================================= */
+const S6 = (() => {
+  const reveal = (d, t) => Math.round(lerp(d.tau + 2, d.T, ease(seg(t, 2, 40))));
+  const LAY = {
+    land: { a: [100, 140, 780, 280], b: [100, 360, 780, 590], c: [100, 690, 780, 820], d: [960, 140, 1520, 380], e: [960, 490, 1520, 760], ro: [960, 840], nd: 3, ndR: 3 },
+    port: { a: [120, 220, 760, 330], b: [120, 410, 760, 590], c: [120, 730, 760, 840], d: [120, 1010, 400, 1200], e: [480, 1010, 760, 1200], ro: [120, 1340], nd: 3, ndR: 2 }
+  };
+  function draw(t){
+    if (!DATA) return noData();
+    const Lo = PORTRAIT ? LAY.port : LAY.land;
+    const d = DATA.datasets[dsKey], p = prep(dsKey), C = p.v.C, V = p.v.VLC, VV = d.variants.VLC;
+    const tr = reveal(d, t), t0 = d.tau + 1, t1 = d.T;
+    // (a) signal
+    const sMax = niceMax(Math.max(...p.signal.filter(v => !NA(v))));
+    const Pa = panel(...Lo.a, t0, t1, 0, sMax);
+    shadeFc(Pa, d); axes(Pa, d, { title: PORTRAIT ? `${d.signal}${d.signal_shared_across_ages ? '' : ', all ages'}` : `${d.signal} · ${d.source}${d.signal_shared_across_ages ? '' : ' · summed over ages'}`, yTicks: [0, sMax], nDates: Lo.nd });
+    pointsP(Pa, p.signal, t0, tr, K.vl, 1.8, 0.45); series(Pa, p.signal7, t0, tr, K.vl, 2.4, 1); cursor(Pa, tr, 0.5);
+    // (b) active-set decomposition
+    const bMax = niceMax(Math.max(...C.I.slice(t0 - 1, t1).filter(v => !NA(v)), ...V.I.slice(t0 - 1, t1).filter(v => !NA(v))));
+    const Pb = panel(...Lo.b, t0, t1, 0, bMax);
+    const ba = seg(t, 14, 15.5);
+    shadeFc(Pb, d); axes(Pb, d, { title: PORTRAIT ? 'active set I, all ages' : 'active set I, all ages (posterior medians)', yTicks: [0, bMax / 2, bMax], nDates: Lo.nd });
+    if (ba > 0){
+      ctx.save(); ctx.globalAlpha = ba;
+      const zero = V.Ic.map(() => 0), top = V.Ic.map((v, i) => NA(v) || NA(V.Iv[i]) ? null : v + V.Iv[i]);
+      bandP(Pb, zero, V.Ic, t0, tr, K.sus, 0.45); bandP(Pb, V.Ic, top, t0, tr, K.vl, 0.55);
+      ctx.restore();
+    }
+    series(Pb, C.I, t0, tr, K.ink, 2, 0.9, [6, 5]); cursor(Pb, tr, 0.5);
+    legend([['Cases-Only Active Set', K.ink, [6, 5]], ['Cases Contribution', K.sus], ['Viral Load Contribution', K.vl]], Pb.x0, Pb.y1 + 24 + 20 * TS, 0.25 + 0.75 * ba, Pb.x1);
+    // (c) force of infection
+    const ca = seg(t, 22, 23.5);
+    if (ca > 0){
+      ctx.save(); ctx.globalAlpha = ca;
+      const hMax = niceMax(Math.max(...C.haz.slice(t0 - 1, t1).filter(v => !NA(v)), ...V.haz.slice(t0 - 1, t1).filter(v => !NA(v))));
+      const Pc = panel(...Lo.c, t0, t1, 0, hMax);
+      shadeFc(Pc, d); axes(Pc, d, { title: PORTRAIT ? 'force of infection /100k/day' : 'force of infection per 100k susceptibles per day (plug-in)', yTicks: [0, hMax], nDates: Lo.nd });
+      series(Pc, C.haz, t0, tr, K.sus, 2.2, 1); series(Pc, V.haz, t0, tr, K.vl, 2.2, 1); cursor(Pc, tr, 0.5);
+      legend([['I=C', K.sus], ['I=VL+C', K.vl]], Pc.x0, Pc.y1 + 24 + 20 * TS, 1, Pc.x1);
+      ctx.restore();
+    }
+    // (d) transform V -> V^p
+    const da = seg(t, 7, 8.5);
+    if (da > 0){
+      ctx.save(); ctx.globalAlpha = da;
+      const [rx0, ry0, rx1, ry1] = Lo.d, R = { x0: rx0, y0: ry0, x1: rx1, y1: ry1 };
+      label(PORTRAIT ? 'V → V^p' : 'how the signal enters:  V  →  V^p  (scaled to its maximum)', R.x0, R.y0 - 12);
+      frame(R.x0, R.y0, R.x1 - R.x0, R.y1 - R.y0, 0.55);
+      ln(R.x0, R.y1, R.x1, R.y0, K.muted, 1.2, 0.7, [5, 6]);
+      if (!PORTRAIT) txt('p = 1 (linear)', lerp(R.x0, R.x1, 0.62) + 14, lerp(R.y1, R.y0, 0.62) + 18, { f: 'sans', size: 13, c: K.muted });
+      const ps = (VV.scalars.vl_power || []).map(r => r.median), shades = [0.55, 0.75, 0.9, 1];
+      const lab = ps.length > 1 ? d.age_groups : ['all ages'];
+      ps.forEach((pw, i) => { const pts = []; for (let u = 0; u <= 1.0001; u += 0.01) pts.push([lerp(R.x0, R.x1, u), lerp(R.y1, R.y0, Math.pow(u, pw))]); poly(pts, K.vl, 2.4, shades[ps.length > 1 ? i : 3]); });
+      ps.forEach((pw, i) => txt(PORTRAIT ? `${lab[i]} ${pw.toFixed(2)}` : `${lab[i]}  p = ${pw.toFixed(2)}`, R.x1 - 8, R.y1 - 10 - (ps.length - 1 - i) * 16 * TS, { f: 'mono', size: PORTRAIT ? 11 : 14, c: K.vl, al: 'right', a: shades[ps.length > 1 ? i : 3] }));
+      txt('V / max V', R.x1, R.y1 + 6 + 13 * TS, { f: 'sans', size: 13, c: K.muted, al: 'right' });
+      ctx.restore();
+    }
+    // (e) reproduction numbers
+    const ea = seg(t, 30, 31.5);
+    if (ea > 0 && V.Reff){
+      ctx.save(); ctx.globalAlpha = ea;
+      const rv = [...V.Reff.q50.slice(t0 - 1, t1), ...(V.Rcase ? V.Rcase.q50.slice(t0 - 1, t1) : [])].filter(v => !NA(v));
+      const rMax = Math.max(1.6, Math.ceil(Math.max(...rv) * 5) / 5);
+      const Pe = panel(...Lo.e, t0, t1, 0, rMax);
+      shadeFc(Pe, d); axes(Pe, d, { title: PORTRAIT ? 'R_eff, I=VL+C' : 'reproduction number, I=VL+C', yTicks: [0, 1, rMax], yFmt: v => v.toFixed(1), nDates: Lo.ndR, fs: PORTRAIT ? 11 : 13 });
+      ln(Pe.x0, Pe.Y(1), Pe.x1, Pe.Y(1), K.muted, 1, 0.7, [3, 5]);
+      bandP(Pe, V.Reff.q5, V.Reff.q95, t0, tr, K.vl, 0.2); series(Pe, V.Reff.q50, t0, tr, K.vl, 2.4, 1);
+      if (V.Rcase) series(Pe, V.Rcase.q50, t0, tr, K.sus, 2.2, 1, [6, 5]);
+      cursor(Pe, tr, 0.5);
+      legend([[PORTRAIT ? 'Recombined' : 'Recombined (VL-apportioned)', K.vl], [PORTRAIT ? 'Case channel' : 'Case channel only', K.sus, [6, 5]]], PORTRAIT ? Lo.d[0] : Pe.x0, Pe.y1 + 24 + 20 * TS, 1, Pe.x1);
+      ctx.restore();
+    }
+    // readout
+    const ro = seg(t, 15, 16.5);
+    if (ro > 0){
+      const aC0 = scal(d.variants.C, 'cases_coef'), aC1 = scal(VV, 'cases_coef');
+      const aV = (VV.scalars.vl_coef || []).map(r => r.median);
+      txt(`a_C:  I=C ${fmtS(aC0)}   →   I=VL+C ${fmtS(aC1)}`, Lo.ro[0], Lo.ro[1], { f: 'mono', size: 16, c: K.ink, a: ro });
+      txt(`a_V:  ${aV.map(fmtS).join(' · ')}${aV.length > 1 ? '  (by age)' : ''}`, Lo.ro[0], Lo.ro[1] + 26 * TS, { f: 'mono', size: 16, c: K.vl, a: ro });
+    }
+  }
+  const eq = `<span class="box"><i>I<sub>g,t</sub></i> = ${SUM('<i>t</i>', '<i>s</i> = <i>t</i>−<i>τ</i>+1')} ( <span class="c-s"><i>a<sub>C</sub> c<sub>g,s</sub></i></span> + <span class="c-v"><i>a<sub>V,g</sub> V<sub>g,s</sub></i><sup><i>p<sub>g</sub></i></sup></span> )</span>`;
+  const eq2 = `<span class="box"><i>λ<sub>g,t</sub></i> = <i>β<sub>g,t</sub></i> ( <span class="c-s"><i>a<sub>C</sub></i> <i>Λ</i><sup>C</sup><sub><i>g,t</i></sub></span> + <span class="c-v"><i>a<sub>V</sub></i> <i>Λ</i><sup>V</sup><sub><i>g,t</i></sub></span> )</span>`;
+  const capFn = k => () => {
+    if (!DATA) return '';
+    const d = DATA.datasets[dsKey], p = prep(dsKey), VV = d.variants.VLC;
+    const ps = (VV.scalars.vl_power || []).map(r => r.median), pTxt = ps.length > 1 ? `between ${Math.min(...ps).toFixed(2)} and ${Math.max(...ps).toFixed(2)} across age groups` : `${ps[0].toFixed(2)}`;
+    const share = (100 * (p.vlShareFit || 0)).toFixed(0);
+    switch (k){
+      case 0: return d.signal === 'Wastewater' ? `${d.place}: ${d.source}. Wastewater sums shedding over the whole sewershed, so one series V_t serves all four age groups. The line is a 7-day mean of the measurements.` : `${d.place}: viral loads from ${d.source}. Each day's positives carry a measured viral load; summed within each age group this gives V_{g,t}. The line is a 7-day mean of the all-age total.`;
+      case 1: return `The I=VL+C model adds a second channel to the active set: the same τ-day window, now also summing the viral-load signal raised to a power p. The fitted p is ${pTxt}: below 1, so the transform is concave and large swings in V become smaller swings in pressure.`;
+      case 2: return `Adding the viral-load channel does not just add pressure. Over the fit window the viral-load term is ${share}% of the active set (median), and the case coefficient a_C moves from ${fmtS(scal(d.variants.C, 'cases_coef'))} to ${fmtS(scal(VV, 'cases_coef'))}: ${+share < 20 ? 'cases still carry most of it' : +share > 80 ? 'viral load carries most of it' : 'the two channels share it'} in this fit, at this origin. Dashed: the cases-only active set.`;
+      case 3: return `Only the products βa_C and βa_V are identified, so β_{g,t} adjusts too. The force of infection of the two models differs by a median factor of ${p.hazRatio ? p.hazRatio.toFixed(2) : '—'} over the fit window. Values are plug-ins from posterior medians of β, I and S.`;
+      case 4: return `The recombined reproduction number at the origin is ${fmtS(p.R_V.vl)} with viral load and ${fmtS(p.R_C.vl)} without, while the case channel alone gives ${fmtS(p.R_V.cs)}. Across the paper’s fits the recombined number is robust in the age-specific GP classes; how it splits between cases and viral load is not, and depends on the data set.`;
+      default: return 'Beyond the origin (shaded), the viral-load term is frozen at its last-five-day mean. Any forecast gain therefore comes from its recent level, not from anticipating its own movement. Over many origins the paper finds a clear gain in Ottawa, a modest one in Brazil, and none in Toronto or Scotland.';
+    }
+  };
+  const E1 = { x: 34, y: 0.6, w: 60, html: eq }, E2 = { x: 34, y: 0.6, w: 60, html: eq2 };
+  return {
+    name: 'Viral load, fitted', dur: 46, draw, real: true,
+    beats: [
+      { at: 0, cap: capFn(0) }, { at: 7, cap: capFn(1), eq: E1 }, { at: 14, cap: capFn(2), eq: E1 },
+      { at: 22, cap: capFn(3), eq: E2 }, { at: 30, cap: capFn(4), eq: E2 }, { at: 38, cap: capFn(5), eq: E2 }
+    ]
+  };
+})();
+
+/* =========================================================
+   Scene 8 — Five case studies (real)
+   ========================================================= */
+const S7 = (() => {
+  const toArr = (d, fc, q) => { const a = new Array(d.T).fill(null); fc.t.forEach((tt, j) => { a[tt - 1] = fc[q][j]; }); return a; };
+  function casesPanel(d, p, P, fa, o = {}){
+    const fcC = d.variants.C.fc_total.cases, fcV = d.variants.VLC.fc_total.cases;
+    shadeFc(P, d); axes(P, d, { yTicks: [0, P.ymax], nDates: 2, fs: o.fs || 12, inside: true });
+    pointsP(P, p.cases, P.t0, P.t1, K.ink, 1.9, 0.75);
+    series(P, p.v.C.yrep, P.t0, d.N, K.sus, 1.8, 0.9); series(P, p.v.VLC.yrep, P.t0, d.N, K.vl, 1.8, 0.9);
+    if (fa > 0){ const tf = Math.round(lerp(d.N, d.T, fa));
+      [[fcC, K.sus], [fcV, K.vl]].forEach(([fc, c]) => { bandP(P, toArr(d, fc, 'q5'), toArr(d, fc, 'q95'), d.N + 1, tf, c, 0.16); series(P, toArr(d, fc, 'q50'), d.N + 1, tf, c, 2.4, 1); }); }
+  }
+  function cMaxOf(d, p, t0, t1){ const fcC = d.variants.C.fc_total.cases, fcV = d.variants.VLC.fc_total.cases;
+    const cv = [...p.cases.slice(t0 - 1, t1), ...fcC.q50, ...fcV.q50, ...p.v.C.yrep.slice(t0 - 1, d.N), ...p.v.VLC.yrep.slice(t0 - 1, d.N)].filter(v => !NA(v)); return niceMax(Math.max(...cv) * 1.1); }
+  function badges(d, x, y, step, fs){ ['C', 'VLC'].forEach((v, j) => { const g = d.variants[v].diagnostics, ok = g.passes_screen, yy = y + j * step;
+    ctx.save(); ctx.strokeStyle = ok ? K.ext : K.inf; ctx.fillStyle = ok ? K.ext : 'transparent'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(x + 5, yy - 5, 5, 0, 6.283); ok ? ctx.fill() : ctx.stroke(); ctx.restore();
+    txt(`${d.variants[v].label}  R̂ ${g.max_rhat.toFixed(3)}${g.num_divergent ? ` · ${g.num_divergent} div` : ''}`, x + 16, yy, { f: 'mono', size: fs, c: ok ? K.muted : K.inf }); }); }
+  function drawLand(t){
+    const CW = 270, GAP = 22, X0 = 90;
+    DS_KEYS.forEach((k, i) => {
+      const d = DATA.datasets[k], p = prep(k), ca = seg(t, 0.4 + i * 0.7, 1.6 + i * 0.7);
+      if (ca <= 0) return;
+      ctx.save(); ctx.globalAlpha = ca;
+      const x0 = X0 + i * (CW + GAP), x1 = x0 + CW, sel = k === dsKey;
+      if (sel){ ctx.save(); ctx.strokeStyle = hexA(K.inf, 0.8); ctx.lineWidth = 1.5; ctx.strokeRect(x0 - 50, 70, CW + 62, 820); ctx.restore(); }
+      txt(d.label, x0, 104, { size: 26, it: true, c: K.ink });
+      txt(d.signal.toUpperCase(), x0, 126, { f: 'sans', size: 12, w: 600, c: d.signal === 'Wastewater' ? K.ext : K.vl, ls: '1.5px' });
+      const t0 = Math.max(d.tau + 1, d.N - 84), t1 = d.T;
+      const sMax = niceMax(Math.max(...p.signal7.slice(t0 - 1, t1).filter(v => !NA(v)), 1e-9));
+      const Ps = panel(x0, 150, x1, 230, t0, t1, 0, sMax);
+      shadeFc(Ps, d); frame(Ps.x0, Ps.y0, CW, 80, 0.55); series(Ps, p.signal7, t0, t1, d.signal === 'Wastewater' ? K.ext : K.vl, 2, 1);
+      txt('signal, 7-day mean', x0 + 6, 166, { f: 'sans', size: 12, c: K.muted });
+      casesPanel(d, p, panel(x0, 270, x1, 520, t0, t1, 0, cMaxOf(d, p, t0, t1)), seg(t, 5, 11));
+      txt('cases, all ages', x0 + 6, 286, { f: 'sans', size: 12, c: K.muted });
+      const Pv = panel(x0, 570, x1, 650, t0, t1, 0, 1);
+      frame(Pv.x0, Pv.y0, CW, 80, 0.55); shadeFc(Pv, d);
+      bandP(Pv, p.v.VLC.vlShare.map(() => 0), p.v.VLC.vlShare, t0, t1, K.vl, 0.45);
+      txt('viral-load share of I', x0 + 6, 586, { f: 'sans', size: 12, c: K.muted });
+      txt(`${(100 * (p.vlShareFit || 0)).toFixed(0)}%`, x1 - 6, 590, { f: 'mono', size: 18, c: K.vl, al: 'right' });
+      const Pr = panel(x0, 690, x1, 790, t0, t1, 0.4, 1.8);
+      frame(Pr.x0, Pr.y0, CW, 100, 0.55); shadeFc(Pr, d); ln(Pr.x0, Pr.Y(1), Pr.x1, Pr.Y(1), K.muted, 1, 0.7, [3, 5]);
+      if (p.v.C.Reff) series(Pr, p.v.C.Reff.q50, t0, t1, K.sus, 1.8, 1);
+      if (p.v.VLC.Reff) series(Pr, p.v.VLC.Reff.q50, t0, t1, K.vl, 1.8, 1);
+      txt('R_eff, recombined', x0 + 6, 706, { f: 'sans', size: 12, c: K.muted }); txt('1', x0 - 8, Pr.Y(1) + 5, { f: 'mono', size: 12, c: K.muted, al: 'right' });
+      txt(`origin ${fmtD(dateOf(d, d.N))} · N=${d.N}`, x0, 816, { f: 'mono', size: 13, c: K.ink });
+      badges(d, x0, 840, 22, 12.5);
+      ctx.restore();
+    });
+    legend([['Observed', K.ink], ['I=C', K.sus], ['I=VL+C', K.vl]], X0 + 2 * (CW + GAP) + 20, 40, seg(t, 3, 4));
+    ctx.save(); ctx.globalAlpha = seg(t, 3, 4); ctx.fillStyle = hexA(K.muted, 0.18); ctx.fillRect(X0 + 4 * (CW + GAP) + 120, 28, 30, 14); ctx.restore();
+    txt('forecast', X0 + 4 * (CW + GAP) + 158, 40, { f: 'sans', size: 14, c: K.ink, a: seg(t, 3, 4) });
+  }
+  function drawPort(t){
+    const Y0 = 110, RH = 252;
+    legend([['Observed', K.ink], ['I=C', K.sus], ['I=VL+C', K.vl]], 30, 60, seg(t, 3, 4), 780);
+    DS_KEYS.forEach((k, i) => {
+      const d = DATA.datasets[k], p = prep(k), ca = seg(t, 0.4 + i * 0.7, 1.6 + i * 0.7);
+      if (ca <= 0) return;
+      ctx.save(); ctx.globalAlpha = ca;
+      const y0 = Y0 + i * RH, sel = k === dsKey;
+      if (sel){ ctx.save(); ctx.strokeStyle = hexA(K.inf, 0.8); ctx.lineWidth = 1.5; ctx.strokeRect(14, y0 - 6, 772, RH - 10); ctx.restore(); }
+      txt(d.label, 30, y0 + 34, { size: 24, it: true, c: K.ink });
+      txt(d.signal.toUpperCase(), 770, y0 + 30, { f: 'sans', size: 11, w: 600, c: d.signal === 'Wastewater' ? K.ext : K.vl, ls: '1px', al: 'right' });
+      const t0 = Math.max(d.tau + 1, d.N - 56), t1 = d.T;
+      casesPanel(d, p, panel(30, y0 + 56, 500, y0 + 196, t0, t1, 0, cMaxOf(d, p, t0, t1)), seg(t, 5, 11), { fs: 10 });
+      const xr = 530;
+      txt('VL share of I', xr, y0 + 74, { f: 'sans', size: 11, c: K.muted });
+      txt(`${(100 * (p.vlShareFit || 0)).toFixed(0)}%`, 770, y0 + 76, { f: 'mono', size: 17, c: K.vl, al: 'right' });
+      const Pr = panel(xr, y0 + 92, 770, y0 + 150, t0, t1, 0.4, 1.8);
+      frame(Pr.x0, Pr.y0, Pr.x1 - Pr.x0, Pr.y1 - Pr.y0, 0.55); shadeFc(Pr, d); ln(Pr.x0, Pr.Y(1), Pr.x1, Pr.Y(1), K.muted, 1, 0.7, [3, 5]);
+      if (p.v.C.Reff) series(Pr, p.v.C.Reff.q50, t0, t1, K.sus, 1.8, 1);
+      if (p.v.VLC.Reff) series(Pr, p.v.VLC.Reff.q50, t0, t1, K.vl, 1.8, 1);
+      txt('R_eff', xr + 6, y0 + 92 + 15, { f: 'sans', size: 10, c: K.muted });
+      badges(d, xr, y0 + 182, 26, 10);
+      ctx.restore();
+    });
+  }
+  function draw(t){ if (!DATA) return noData(); PORTRAIT ? drawPort(t) : drawLand(t); }
+  const capFn = k => () => {
+    if (!DATA) return '';
+    const rows = DS_KEYS.map(key => [DATA.datasets[key].label, prep(key).vlShareFit || 0]).sort((a, b) => a[1] - b[1]);
+    const lo = rows[0], hi = rows[rows.length - 1];
+    const bad = DS_KEYS.flatMap(key => ['C', 'VLC'].filter(v => !DATA.datasets[key].variants[v].diagnostics.passes_screen).map(v => `${DATA.datasets[key].label} ${DATA.datasets[key].variants[v].label}`));
+    switch (k){
+      case 0: return `The same model on five case studies: two with individual PCR viral loads (Brazil, Sao Paulo) and three with wastewater (Ottawa, Toronto, Scotland). Each ${PORTRAIT ? 'row' : 'column'} is one ${DATA.arm.toUpperCase()} fit at a single forecast origin, the latest at which both active sets pass the sampler screen (not the paper’s reference cutoff); the panels show the weeks just before it. The paper’s results pool many origins.`;
+      case 1: return 'Points are observed daily cases. Lines before the origin are posterior predictive medians, summed over age groups; after it, the 14-day forecast with 90% intervals from the summed forecast draws. Blue is I=C, rose is I=VL+C.';
+      case 2: return `How much of the active set viral load carries varies widely: from ${(100 * lo[1]).toFixed(0)}% in ${lo[0]} to ${(100 * hi[1]).toFixed(0)}% in ${hi[0]} (median over the fit window). The recombined reproduction number moves far less than that split.`;
+      default: return bad.length ? `Open badges mark fits that fail the sampler screen (max R̂ ≤ 1.01, ESS ≥ 400, no divergences, E-BFMI ≥ 0.3): ${bad.join(', ')}. Read those curves with care. The origin rule and fold paths are in explainer_data.js.` : 'All ten fits pass the sampler screen (max R̂ ≤ 1.01, ESS ≥ 400, no divergences, E-BFMI ≥ 0.3).';
+    }
+  };
+  return { name: 'Five case studies', dur: 34, draw, real: true,
+    beats: [ { at: 0, cap: capFn(0) }, { at: 7, cap: capFn(1) }, { at: 15, cap: capFn(2) }, { at: 24, cap: capFn(3) } ] };
+})();
+
+/* =========================================================
+   Scene 9 — Recap
+   ========================================================= */
+const S8 = (() => {
+  const tree = (() => { const r = mulberry32(21); const ns = [{ x: 0, y: 0, g: 0 }]; let cur = [0];
+    for (let g = 1; g <= 4; g++){ const nx = []; cur.forEach(i => { const k = Math.min(3, poisson(r, 1.8)); for (let j = 0; j < k; j++){ ns.push({ g, p: i }); nx.push(ns.length - 1); } }); if (nx.length > 14) nx.length = 14; cur = nx; }
+    const byG = [[], [], [], [], []]; ns.forEach((n, i) => { if (n.g <= 4) byG[n.g].push(i); }); byG.forEach((arr, g) => arr.forEach((i, j) => { ns[i].x = g * 50; ns[i].y = (j + 0.5) / arr.length * 200 - 100; })); return ns; })();
+  const dots = (() => { const r = mulberry32(5); return Array.from({ length: 46 }, () => ({ x: r() * 200 - 100, y: r() * 180 - 90, s: r() < 0.2 ? 1 : r() < 0.3 ? 2 : 0, ph: r() * 6 })); })();
+  function draw(t){
+    const pos = PORTRAIT ? [[230, 220], [570, 220], [230, 520], [570, 520]] : [[230, 290], [620, 290], [1000, 290], [1380, 290]];
+    const fade = k => seg(t, 0.5 + k * 1.1, 1.6 + k * 1.1);
+    let [cx, cy] = pos[0];
+    ctx.save(); ctx.globalAlpha = fade(0);
+    tree.forEach(n => { if (n.p !== undefined && tree[n.p].x !== undefined && n.x !== undefined) ln(cx - 100 + tree[n.p].x, cy + tree[n.p].y, cx - 100 + n.x, cy + n.y, K.inf, 1.3, 0.45); });
+    tree.forEach(n => { if (n.x === undefined) return; glow(cx - 100 + n.x, cy + n.y, 11, K.inf, 0.7); dot(cx - 100 + n.x, cy + n.y, 3.6, K.inf); });
+    ctx.restore();
+    [cx, cy] = pos[1];
+    ctx.save(); ctx.globalAlpha = fade(1); ctx.strokeStyle = K.line; ctx.lineWidth = 1.5; ctx.strokeRect(cx - 110, cy - 100, 220, 200);
+    dots.forEach(d => { const x = cx + d.x + 5 * Math.sin(t * 0.9 + d.ph), y = cy + d.y + 5 * Math.cos(t * 0.7 + d.ph); if (d.s === 1) glow(x, y, 11, K.inf, 0.7); dot(x, y, 3.6, d.s === 1 ? K.inf : d.s === 2 ? K.rec : K.sus); });
+    ctx.restore();
+    [cx, cy] = pos[2];
+    ctx.save(); ctx.globalAlpha = fade(2);
+    for (let g = 0; g < 4; g++) for (let h = 0; h < 4; h++){ const v = g === h ? 0.85 : 0.18 + 0.1 * (3 - Math.abs(g - h)) / 3; ctx.fillStyle = hexA(K.sus, v); ctx.fillRect(cx - 96 + h * 48 + 2, cy - 96 + g * 48 + 2, 44, 44); }
+    ctx.restore();
+    [cx, cy] = pos[3];
+    ctx.save(); ctx.globalAlpha = fade(3);
+    const f = a => a < 2 ? 4 + 2 * a : Math.max(2, 8 - 0.4 * (a - 2));
+    const pts = []; for (let a = 0; a <= 15; a += 0.1) pts.push([cx - 110 + a * 14.6, cy + 80 - (f(a) - 2) * 26]);
+    poly(pts, K.vl, 2.6, 1); const a = (t * 1.4) % 15; glow(cx - 110 + a * 14.6, cy + 80 - (f(a) - 2) * 26, 10 + 4 * (f(a) - 2), K.vl, 1); dot(cx - 110 + a * 14.6, cy + 80 - (f(a) - 2) * 26, 4.5, K.vl);
+    ctx.restore();
+    if (!PORTRAIT) for (let k = 0; k < 3; k++){ const x1 = pos[k][0] + 128, x2 = pos[k + 1][0] - 128, u = ease(seg(t, 1.1 + k * 1.1, 2 + k * 1.1)); if (u <= 0) continue; const xe = lerp(x1, x2, u); ln(x1, 290, xe, 290, K.muted, 1.6, 0.8); if (u > 0.95){ ln(xe, 290, xe - 10, 283, K.muted, 1.6, 0.8); ln(xe, 290, xe - 10, 297, K.muted, 1.6, 0.8); } }
+  }
+  const col = (n, t, b) => `<div style="min-width:0"><span class="lbl">${n}</span><div class="rt">${t}</div><div class="rb">${b}</div></div>`;
+  const recap = () => {
+    let vlTxt = 'Recent cases and the viral-load signal share one τ-day active set; the split varies by data set while the recombined R_eff stays close.';
+    if (DATA){ const sh = DS_KEYS.map(k => prep(k).vlShareFit || 0); vlTxt = `An additive second channel, <i>a<sub>V</sub></i> Σ <i>V<sup>p</sup></i>, beside <i>a<sub>C</sub></i> Σ <i>c</i>. Across the five case studies it carries ${(100 * Math.min(...sh)).toFixed(0)}–${(100 * Math.max(...sh)).toFixed(0)}% of the active set at the origins shown; in the paper’s age-specific classes the recombined <i>R</i><sub>eff</sub> is robust to adding it.`; }
+    return `<div class="recap">
+    ${col('1 · early phase', 'Branching', 'Independent infectives, offspring with mean R₀. Gives the chance a chain dies out, 1 − q of a major outbreak, and growth R₀ⁿ.')}
+    ${col('2 · whole epidemic', 'Mass action', 'Every infective adds the same β/N to each susceptible’s hazard. Depletion of S bends the curve away from branching growth.')}
+    ${col('3 · our model', 'Who infects whom', 'Four age groups meet through <i>C<sub>gh</sub></i>. Pressure <i>Λ<sub>g</sub></i> = Σ<sub><i>h</i></sub> <i>C<sub>gh</sub> I<sub>h</sub></i>/<i>N<sub>h</sub></i>; the GP <i>β<sub>g</sub></i> rescales rows, the active set sets the columns.')}
+    ${col('4 · our model', 'Viral load', vlTxt)}</div>`;
+  };
+  return { name: 'Recap', dur: 18, draw, fixed: () => ({ x: 5, y: 58, w: 90, m: { x: 6, y: 50, w: 88 }, html: recap() }),
+    beats: [
+      { at: 0, cap: 'Four layers, one chain of reasoning. Branching processes describe the random start, mass action describes depletion, the contact matrix says who infects whom, and viral load changes how much each recent case, or each unit of signal, counts toward tomorrow’s pressure.' },
+      { at: 8, cap: 'Varying infectiousness between people is overdispersion in the offspring distribution (scene 3): for the same R₀ it makes early extinction more likely. Viral load is one candidate measure of it. The multiplicative active set I=VL×C weights each case by the group-day viral-load signal (not each person’s own); in São Paulo the paper finds it fits worse than cases alone.' }
+    ] };
+})();
+
+/* ---------- engine ---------- */
+const scenes = [S0, S1, S2, S3, S4, S5, S6, S7, S8];
+scenes.forEach(s => s.build && s.build());
+let si = 0, t = 0, playing = !matchMedia('(prefers-reduced-motion: reduce)').matches, lastTs = null, curBeat = -1, curEqKey = '', curCap = '';
+const $ = id => document.getElementById(id);
+const chapEl = $('chapters');
+scenes.forEach((s, i) => { const b = document.createElement('button'); if (s.real) b.className = 'real'; b.innerHTML = `<span>${i + 1}</span><em>${s.name}</em>`; b.title = s.name + (s.real ? ' (fitted data)' : ''); b.addEventListener('click', () => go(i)); chapEl.appendChild(b); });
+
+/* case-study picker */
+function buildPicker(){
+  const seg = $('dsSeg'); seg.innerHTML = '';
+  if (!DATA){ $('picker').hidden = true; return; }
+  DS_KEYS.forEach(k => { const b = document.createElement('button'); b.textContent = DATA.datasets[k].label; b.setAttribute('aria-pressed', k === dsKey); b.addEventListener('click', () => setDs(k)); seg.appendChild(b); });
+  const d = DATA.datasets[dsKey];
+  $('dsNote').textContent = `${d.signal} · origin ${fmtD(dateOf(d, d.N))} (N=${d.N}) · used in scenes 5, 7 and 8`;
+}
+function setDs(k){ dsKey = k; try { localStorage.setItem('explainer.ds', k); } catch (e) {} buildPicker(); buildParams(); updateBeat(true); }
+if (DATA){
+  const d0 = DATA.datasets[DS_KEYS[0]];
+  $('provenance').innerHTML = `Scenes marked ● use fitted posterior summaries: ${DATA.arm.toUpperCase()} class, one forecast origin per case study, from <code>${DATA.source}</code>, exported ${DATA.generated} by <code>scripts/build_branching_explainer_data.py</code>. Force of infection and expected incidence are plug-ins from posterior medians.`;
+}
+
+function capHtml(s){ const e = String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return e.replace(/(^|[^A-Za-z])([A-Za-zΛλβμ])_(\{[^}]+\}|[A-Za-z0-9]+)/g, (m, pre, b, sub) => `${pre}<i>${b}</i><sub>${sub.replace(/[{}]/g, '')}</sub>`); }
+function placeOv(el, eq0){ if (!eq0){ el.classList.add('hide'); return; }
+  const eq = PORTRAIT ? Object.assign({ html: eq0.html }, eq0.m || { x: 50, y: 1.2, w: 94, c: true }) : eq0;
+  el.style.left = eq.x + '%'; el.style.top = eq.y + '%'; el.style.width = eq.w + '%'; el.style.transform = eq.c ? 'translateX(-50%)' : 'none'; el.style.textAlign = eq.c ? 'center' : 'left';
+  if (el.dataset.html !== eq.html){ el.innerHTML = eq.html; el.dataset.html = eq.html; } el.classList.remove('hide'); }
+function beatIndex(s, tt){ let k = 0; s.beats.forEach((b, i) => { if (tt >= b.at) k = i; }); return k; }
+function updateBeat(force){
+  const s = scenes[si], k = beatIndex(s, t), b = s.beats[k];
+  const eq = typeof b.eq === 'function' ? b.eq() : b.eq;
+  const key = si + ':' + k + ':' + (eq ? eq.html : '');
+  if (force || key !== curEqKey){ curEqKey = key; placeOv(ovA, eq); }
+  const cap = typeof b.cap === 'function' ? b.cap() : b.cap;
+  if (force || k !== curBeat || cap !== curCap){ curBeat = k; curCap = cap; $('cap').innerHTML = capHtml(cap); }
+  const f = typeof s.fixed === 'function' ? s.fixed() : s.fixed; placeOv(ovB, f || null);
+}
+function buildParams(){
+  const p = $('params'); p.innerHTML = '';
+  const slider = (id, lab, min, max, step, val, on) => { const d = document.createElement('div'); d.className = 'ctl'; d.innerHTML = `<label for="${id}">${lab}</label><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}"><output for="${id}">${(+val).toFixed(2)}</output>`; const inp = d.querySelector('input'), out = d.querySelector('output'); inp.addEventListener('input', () => { out.textContent = (+inp.value).toFixed(2); on(+inp.value); }); p.appendChild(d); return { set: v => { inp.value = v; out.textContent = (+v).toFixed(2); } }; };
+  const btn = (lab, on) => { const b = document.createElement('button'); b.textContent = lab; b.addEventListener('click', on); p.appendChild(b); return b; };
+  const rebuild = () => { scenes.forEach(s => s.build && s.build()); if (S3.reset) S3.reset(); };
+  if (si === 1 || si === 2 || si === 3){
+    const sl = slider('r0', 'R₀', 0.5, 4, 0.05, P.R0, v => { P.R0 = v; rebuild(); updateBeat(true); });
+    if (DATA){ const d = DATA.datasets[dsKey], r = prep(dsKey).R_C.vl;
+      if (!NA(r)) btn(`Use ${d.label}'s fitted R_eff at ${fmtD(dateOf(d, d.N))} (${r.toFixed(2)})`, () => { P.R0 = Math.round(r * 100) / 100; sl.set(P.R0); rebuild(); updateBeat(true); }); }
+  }
+  if (si === 1) btn('Resample tree', () => { P.seed1++; S1.build(); if (t > 17) t = 17; });
+  if (si === 2){ btn('Resample outbreaks', () => { P.seed2++; S2.build(); });
+    const d = document.createElement('div'); d.className = 'ctl'; d.innerHTML = `<span style="color:var(--muted)">Infectiousness</span><div class="seg" role="group"><button id="hu" aria-pressed="${!P.het}">Uniform</button><button id="hv" aria-pressed="${P.het}">Varies (k = 0.4)</button></div>`; p.appendChild(d);
+    const set = v => { P.het = v; d.querySelector('#hu').setAttribute('aria-pressed', !v); d.querySelector('#hv').setAttribute('aria-pressed', v); rebuild(); updateBeat(true); };
+    d.querySelector('#hu').addEventListener('click', () => set(false)); d.querySelector('#hv').addEventListener('click', () => set(true)); }
+  if (si === 3) btn('Rerun epidemic', () => { t = 1.5; S3.reset(); });
+}
+function go(i){ si = clamp(i, 0, scenes.length - 1); t = 0; curBeat = -1; curEqKey = '';
+  [...chapEl.children].forEach((b, j) => b.setAttribute('aria-current', j === si ? 'true' : 'false'));
+  $('chap').textContent = `Scene ${si + 1} of ${scenes.length} · ${scenes[si].name}${scenes[si].real && DATA ? ' · ' + DSLAB() : ''}`;
+  if (si === 3) S3.reset();
+  buildParams(); updateBeat(true);
+  if (!playing) t = scenes[si].dur - 0.01;
+}
+const _setDs = setDs; setDs = k => { _setDs(k); $('chap').textContent = `Scene ${si + 1} of ${scenes.length} · ${scenes[si].name}${scenes[si].real && DATA ? ' · ' + DSLAB() : ''}`; };
+function setPlaying(v){ playing = v; $('play').textContent = v ? 'Pause' : 'Play'; if (v && t >= scenes[si].dur - 0.02) t = 0; }
+$('play').addEventListener('click', () => setPlaying(!playing));
+$('restart').addEventListener('click', () => { t = 0; if (si === 3) S3.reset(); updateBeat(true); if (!playing) setPlaying(true); });
+const scrub = $('scrub'); scrub.addEventListener('input', () => { t = scrub.value / 1000 * scenes[si].dur; updateBeat(); });
+document.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' || (e.target.tagName === 'BUTTON' && e.key === ' ')) return;
+  if (e.key === ' '){ e.preventDefault(); setPlaying(!playing); } else if (e.key === 'ArrowRight') go(si + 1); else if (e.key === 'ArrowLeft') go(si - 1); });
+
+/* Layout mode: a portrait stage (800 x 1400, larger type) at phone width, the 16:9 film otherwise. */
+const narrow = matchMedia('(max-width: 640px)');
+function setMode(){
+  PORTRAIT = narrow.matches; W = PORTRAIT ? 800 : 1600; H = PORTRAIT ? 1400 : 900; TS = PORTRAIT ? 1.6 : 1;
+  document.getElementById('stage').classList.toggle('portrait', PORTRAIT);
+  if (S3.reset) S3.reset();
+  curEqKey = ''; if (typeof updateBeat === 'function' && scenes[si]) updateBeat(true);
+}
+(narrow.addEventListener ? narrow.addEventListener('change', setMode) : narrow.addListener(setMode));
+setMode();
+function resize(){ const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); }
+new ResizeObserver(resize).observe(cv); resize();
+
+/* Embedded in the Stan monitoring dashboard: report height, pause while the tab is hidden. */
+if (window.parent !== window){
+  const target = location.origin && location.origin !== 'null' ? location.origin : '*';
+  const postH = () => { try { window.parent.postMessage({ type: 'explainer-height', height: document.documentElement.scrollHeight }, target); } catch (e) {} };
+  new ResizeObserver(postH).observe(document.body); postH();
+  let wasPlaying = null;
+  window.addEventListener('message', e => { if (e.source !== window.parent || !e.data || e.data.type !== 'explainer-visibility') return;
+    if (!e.data.visible){ if (wasPlaying === null) wasPlaying = playing; setPlaying(false); } else if (wasPlaying !== null){ setPlaying(wasPlaying); wasPlaying = null; } });
+}
+
+function loop(ts){
+  const dt = lastTs == null ? 0 : Math.min(0.05, (ts - lastTs) / 1000); lastTs = ts;
+  const s = scenes[si];
+  if (playing){ t += dt; if (t >= s.dur){ if (si < scenes.length - 1){ go(si + 1); } else { t = s.dur - 0.01; setPlaying(false); } } }
+  updateBeat();
+  const sc = cv.width / W;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = K.bg; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(sc, 0, 0, sc, 0, 0);
+  try { scenes[si].draw(t); } catch (err){ console.error(err); }
+  scrub.value = Math.round(t / scenes[si].dur * 1000);
+  $('time').textContent = `${t.toFixed(1)} / ${scenes[si].dur} s`;
+  requestAnimationFrame(loop);
+}
+window.__explainer = { go, setDs, seek: v => { t = v; updateBeat(true); }, pause: () => setPlaying(false) };
+const startAll = () => { buildPicker(); go(0); if (!playing){ $('play').textContent = 'Play'; } requestAnimationFrame(loop); };
+(document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(startAll, startAll);
+})();
+</script>
